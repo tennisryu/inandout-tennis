@@ -3728,18 +3728,15 @@
 
             const date = currentSchedule.date || new Date().toISOString().split('T')[0];
             try {
-                // 수동 저장: 항상 새 버전 생성 (POST)
-                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedule/${date}`, {
+                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(currentSchedule)
                 });
                 if (resp.ok) {
-                    const result = await resp.json();
-                    currentSchedule._filename = result.filename;
                     btn.textContent = '✅ 저장 완료';
                     status.style.color = '#4ade80';
-                    status.textContent = result.filename;
+                    status.textContent = date;
                     _saveScheduleToLocal();
                     await _populateScheduleDateSelect();
                 } else {
@@ -3761,31 +3758,15 @@
         }
 
         async function _saveScheduleToServer() {
-            // 자동저장: 현재 파일 덮어쓰기 (새 버전 생성 안 함)
             if (!currentSchedule) return;
-            const filename = currentSchedule._filename;
             const date = currentSchedule.date || new Date().toISOString().split('T')[0];
             try {
-                if (filename) {
-                    // 기존 파일 덮어쓰기 (PUT)
-                    await fetch(`${SCHEDULE_SERVER}/api/schedule/file/${filename}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(currentSchedule)
-                    });
-                } else {
-                    // 파일명 없으면 최초 저장 (POST → 새 버전)
-                    const resp = await fetch(`${SCHEDULE_SERVER}/api/schedule/${date}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(currentSchedule)
-                    });
-                    if (resp.ok) {
-                        const result = await resp.json();
-                        currentSchedule._filename = result.filename;
-                        await _populateScheduleDateSelect();
-                    }
-                }
+                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentSchedule)
+                });
+                if (resp.ok) await _populateScheduleDateSelect();
             } catch(e) { console.warn('[Schedule] 자동저장 실패:', e.message); }
         }
 
@@ -3796,7 +3777,7 @@
 
         async function _loadLatestScheduleFromServer() {
             try {
-                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedule/latest`);
+                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/latest`);
                 if (!resp.ok) return;
                 const data = await resp.json();
                 if (data && data.schedule) {
@@ -3811,20 +3792,21 @@
 
         async function _loadScheduleList() {
             try {
-                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedule/list`);
+                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/list`);
                 if (!resp.ok) return [];
-                return await resp.json();
+                return await resp.json(); // ["2026-05-31", "2026-05-24", ...]
             } catch(e) { return []; }
         }
 
-        async function loadScheduleByDate(filename) {
-            if (!filename) { alert('날짜/버전을 선택해주세요.'); return; }
+        async function loadScheduleByDate(date) {
+            if (!date) { alert('날짜를 선택해주세요.'); return; }
             try {
-                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedule/${filename}`);
+                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`);
                 if (!resp.ok) { alert('해당 대진을 찾을 수 없습니다.'); return; }
-                const data = await resp.json();
-                if (data && data.schedule) {
-                    currentSchedule = data;
+                const result = await resp.json();
+                if (result && result.schedule) {
+                    currentSchedule = result;
+                    _saveScheduleToLocal();
                     document.getElementById('sch-result').style.display = 'block';
                     renderScheduleOutput();
                 }
@@ -3834,26 +3816,16 @@
         async function _populateScheduleDateSelect() {
             const sel = document.getElementById('sch-load-date');
             if (!sel) return;
-            const list = await _loadScheduleList();  // [{date, versions:[{filename, time}]}]
+            const list = await _loadScheduleList(); // ["2026-05-31", ...]
             if (!list || list.length === 0) {
                 sel.innerHTML = '<option value="">저장된 대진 없음</option>';
                 return;
             }
-            let html = '<option value="">-- 날짜/버전 선택 --</option>';
-            list.forEach(({ date, versions }) => {
-                if (versions.length === 1) {
-                    // 버전 1개면 날짜만 표시
-                    html += `<option value="${versions[0].filename}">${date}</option>`;
-                } else {
-                    // 버전 여러 개면 그룹으로 표시
-                    html += `<optgroup label="${date} (${versions.length}개)">`;
-                    versions.forEach((v, i) => {
-                        const label = i === 0 ? `${v.time} (최신)` : v.time;
-                        html += `<option value="${v.filename}">${date} ${label}</option>`;
-                    });
-                    html += '</optgroup>';
-                }
+            let html = '<option value="">-- 날짜 선택 --</option>';
+            list.forEach(date => {
+                html += `<option value="${date}">${date}</option>`;
             });
+            // 아래 optgroup 코드 제거를 위한 임시 처리
             sel.innerHTML = html;
         }
 
