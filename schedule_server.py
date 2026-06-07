@@ -861,6 +861,26 @@ async def save_matches(req: Request):
 # ──────────────────────────────────────────
 # DB API — 대진표
 # ──────────────────────────────────────────
+def _parse_schedule_row(row):
+    """schedule_data가 리스트(배열)이거나 dict일 수 있음 - 둘 다 처리"""
+    sched_data = row[1]
+    if isinstance(sched_data, list):
+        # 배열로 저장된 경우: schedule_data = [{round:1,...}, ...]
+        return {
+            "date": str(row[0]),
+            "schedule": sched_data,
+            "gameCounts": row[2] or {},
+            "players": []
+        }
+    else:
+        # dict로 저장된 경우: schedule_data = {schedule:[...], players:[...]}
+        return {
+            "date": str(row[0]),
+            "schedule": sched_data.get("schedule", []),
+            "gameCounts": row[2] or sched_data.get("gameCounts", {}),
+            "players": sched_data.get("players", [])
+        }
+
 @app.get("/api/schedules/latest")
 async def get_latest_schedule():
     with engine.connect() as conn:
@@ -870,8 +890,7 @@ async def get_latest_schedule():
         )).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="저장된 대진이 없습니다.")
-    return {"date": str(row[0]), "schedule": row[1]["schedule"],
-            "gameCounts": row[2], "players": row[1].get("players", [])}
+    return _parse_schedule_row(row)
 
 @app.get("/api/schedules/list")
 async def get_schedule_list():
@@ -890,8 +909,7 @@ async def get_schedule(date: str):
         ), {"date": date}).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="해당 날짜의 대진이 없습니다.")
-    return {"date": str(row[0]), "schedule": row[1]["schedule"],
-            "gameCounts": row[2], "players": row[1].get("players", [])}
+    return _parse_schedule_row(row)
 
 @app.post("/api/schedules/{date}")
 async def save_schedule(date: str, req: Request):
