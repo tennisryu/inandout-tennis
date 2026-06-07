@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3)",
+      "Bash(curl -s http://localhost:5050/api/schedule/list)",
+      "Bash(curl -s http://localhost:5050/api/schedule/latest)",
+      "Bash(curl -s -X POST http://localhost:5050/api/schedule/2026-05-31 -H 'Content-Type: application/json' -d '{\"date\":\"2026-05-31\",\"schedule\":[],\"test\":true}')",
+      "Bash(pip install *)",
+      "Bash(python3 -c \"import fastapi; print\\('fastapi 위치:', fastapi.__file__\\)\")",
+      "Bash(psql -U postgres -l)",
+      "Bash(psql -l)",
+      "Bash(brew services *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('schedule 키:', list\\(d.keys\\(\\)\\)\\); print\\('round 샘플:', json.dumps\\(d['schedule'][0], ensure_ascii=False\\)[:200]\\)\")",
+      "Bash(curl -s http://localhost:5050/api/health)",
+      "Bash(find \"/Applications/PostgreSQL 18/pgAdmin 4.app\" -name \"pgAdmin4\" -o -name \"pgadmin4\" 2>/dev/null | head -20)",
+      "Bash(find /Applications -name \"pgAdmin*\" -maxdepth 4 2>/dev/null)",
+      "Bash(find \"/Library/PostgreSQL\" /usr/local -name \"pgAdmin4\" -o -name \"pgadmin4\" 2>/dev/null | head -10)",
+      "Bash(find /Library -name \"pgadmin4\" -maxdepth 8 2>/dev/null | head -10)",
+      "Bash(python3 schedule_server.py)",
+      "Bash(curl -s http://localhost:5050/api/members)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'members API: {len\\(d\\)}명 반환'\\); print\\('샘플:', d[0]\\)\")",
+      "Bash(curl -s http://localhost:5050/api/matches)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'matches API: {len\\(d\\)}경기 반환'\\); print\\('샘플:', d[0]\\)\")",
+      "Bash(curl -s http://localhost:5050/api/schedules/list)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'schedules API: {d}'\\)\")",
+      "Bash(pkill -f \"schedule_server\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'✅ members: {len\\(d\\)}명'\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'✅ matches: {len\\(d\\)}경기, id 포함:', \\\\\"id\\\\\" in d[0]\\)\")",
+      "Bash(python3 -c \"import json,sys; print\\('✅ schedules:', json.load\\(sys.stdin\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('members:', len\\(d\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('matches:', len\\(d\\)\\)\")"
+    ]
+  }
+}
