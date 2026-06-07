@@ -5159,7 +5159,10 @@
 
         function renderScheduleOutput() {
             if (!currentSchedule) return;
-            const {schedule, gameCounts, players} = currentSchedule;
+            const {schedule, gameCounts} = currentSchedule;
+            // players가 비어있으면 data.allPlayers 사용
+            const players = (currentSchedule.players && currentSchedule.players.length > 0)
+                ? currentSchedule.players : data.allPlayers;
             const playerMap = {};
             players.forEach(p => playerMap[p.name] = p);
 
