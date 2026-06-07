@@ -3709,7 +3709,10 @@
         // ═══════════════════════════════════════════════
         // 게스트는 data.members에 type:'게스트'로 통합 관리 (회원관리 탭과 양방향 연동)
         let currentSchedule = null;
-        const SCHEDULE_SERVER = 'http://localhost:5050';
+        // 로컬이면 localhost:5050, 배포 환경이면 같은 서버(상대 URL)
+        const SCHEDULE_SERVER = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5050'
+            : '';
         let _scheduleSaveTimer = null;
 
         // ── 서버 저장/불러오기 ──
@@ -4798,7 +4801,9 @@
             }
         }
 
-        const SCHEDULE_SERVER_URL = 'http://localhost:5050';
+        const SCHEDULE_SERVER_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5050'
+            : '';
 
         async function generateSchedule() {
             const players = getSchSelectedPlayers();

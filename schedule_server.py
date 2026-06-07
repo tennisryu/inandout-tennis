@@ -11,12 +11,15 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 import random
 import math
 import os
 import json
 from pathlib import Path
 from datetime import datetime
+
+load_dotenv()  # .env 파일 로드
 
 app = FastAPI(title="인앤아웃 테니스 대진 서버")
 
