@@ -5292,8 +5292,16 @@
                 });
             });
 
-            // 경기수 많은 순 정렬
-            const sorted = [...players].sort((a,b) => (gameCounts[b.name]||0) - (gameCounts[a.name]||0));
+            // 대진에 실제 참여한 선수만 표시 (gameCounts에 있는 선수)
+            const participantNames = new Set(Object.keys(gameCounts).filter(n => (gameCounts[n]||0) > 0));
+            const sortedAll = [...players].filter(p => participantNames.has(p.name));
+            // gameCounts에 있지만 players에 없는 경우 보완
+            participantNames.forEach(name => {
+                if (!sortedAll.find(p => p.name === name)) {
+                    sortedAll.push(playerMap[name] || { name, gender: '남', level: 6 });
+                }
+            });
+            const sorted = sortedAll.sort((a,b) => (gameCounts[b.name]||0) - (gameCounts[a.name]||0));
             const maxCount = Math.max(...Object.values(gameCounts), 1);
             const countsHtml = sorted.map(p => {
                 const count = gameCounts[p.name] || 0;
