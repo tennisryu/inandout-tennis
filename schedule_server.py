@@ -896,19 +896,32 @@ async def get_latest_schedule():
 async def get_schedule_list():
     with engine.connect() as conn:
         rows = conn.execute(text(
-            "SELECT DISTINCT played_at FROM schedules ORDER BY played_at DESC"
+            "SELECT id, played_at, saved_at FROM schedules ORDER BY played_at DESC, saved_at DESC"
         )).fetchall()
-    return [str(r[0]) for r in rows]
+    from collections import defaultdict
+    date_map = defaultdict(list)
+    for r in rows:
+        date_map[str(r[1])].append({
+            "id": r[0],
+            "saved_at": r[2].strftime("%H:%M:%S") if r[2] else ""
+        })
+    return [{"date": d, "versions": v} for d, v in date_map.items()]
 
-@app.get("/api/schedules/{date}")
-async def get_schedule(date: str):
+@app.get("/api/schedules/{key}")
+async def get_schedule(key: str):
     with engine.connect() as conn:
-        row = conn.execute(text(
-            "SELECT played_at, schedule_data, game_counts FROM schedules "
-            "WHERE played_at=:date ORDER BY saved_at DESC LIMIT 1"
-        ), {"date": date}).fetchone()
+        # key가 숫자면 id로, 아니면 날짜로 조회
+        if key.isdigit():
+            row = conn.execute(text(
+                "SELECT played_at, schedule_data, game_counts FROM schedules WHERE id=:id"
+            ), {"id": int(key)}).fetchone()
+        else:
+            row = conn.execute(text(
+                "SELECT played_at, schedule_data, game_counts FROM schedules "
+                "WHERE played_at=:date ORDER BY saved_at DESC LIMIT 1"
+            ), {"date": key}).fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="해당 날짜의 대진이 없습니다.")
+        raise HTTPException(status_code=404, detail="해당 대진이 없습니다.")
     return _parse_schedule_row(row)
 
 @app.post("/api/schedules/{date}")

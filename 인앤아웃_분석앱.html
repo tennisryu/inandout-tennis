@@ -3794,14 +3794,14 @@
             try {
                 const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/list`);
                 if (!resp.ok) return [];
-                return await resp.json(); // ["2026-05-31", "2026-05-24", ...]
+                return await resp.json(); // [{date, versions:[{id, saved_at}]}]
             } catch(e) { return []; }
         }
 
-        async function loadScheduleByDate(date) {
-            if (!date) { alert('날짜를 선택해주세요.'); return; }
+        async function loadScheduleByDate(key) {
+            if (!key) { alert('날짜/버전을 선택해주세요.'); return; }
             try {
-                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`);
+                const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${key}`);
                 if (!resp.ok) { alert('해당 대진을 찾을 수 없습니다.'); return; }
                 const result = await resp.json();
                 if (result && result.schedule) {
@@ -3816,16 +3816,24 @@
         async function _populateScheduleDateSelect() {
             const sel = document.getElementById('sch-load-date');
             if (!sel) return;
-            const list = await _loadScheduleList(); // ["2026-05-31", ...]
+            const list = await _loadScheduleList();
             if (!list || list.length === 0) {
                 sel.innerHTML = '<option value="">저장된 대진 없음</option>';
                 return;
             }
-            let html = '<option value="">-- 날짜 선택 --</option>';
-            list.forEach(date => {
-                html += `<option value="${date}">${date}</option>`;
+            let html = '<option value="">-- 날짜/버전 선택 --</option>';
+            list.forEach(({ date, versions }) => {
+                if (versions.length === 1) {
+                    html += `<option value="${versions[0].id}">${date}</option>`;
+                } else {
+                    html += `<optgroup label="${date} (${versions.length}개)">`;
+                    versions.forEach((v, i) => {
+                        const label = i === 0 ? `${v.saved_at} (최신)` : v.saved_at;
+                        html += `<option value="${v.id}">${date} ${label}</option>`;
+                    });
+                    html += '</optgroup>';
+                }
             });
-            // 아래 optgroup 코드 제거를 위한 임시 처리
             sel.innerHTML = html;
         }
 
@@ -5066,9 +5074,12 @@
         // ── 대진표 렌더링 (수동 편집 가능) ──
         function _makePlayerSelect(roundIdx, courtIdx, pos, currentName) {
             if (!currentSchedule) return '';
+            // players가 비어있으면 data.allPlayers 사용
+            const playerSource = (currentSchedule.players && currentSchedule.players.length > 0)
+                ? currentSchedule.players : data.allPlayers;
             const playerMap = {};
-            currentSchedule.players.forEach(p => playerMap[p.name] = p);
-            const allNames = currentSchedule.players.map(p => p.name);
+            playerSource.forEach(p => playerMap[p.name] = p);
+            const allNames = playerSource.map(p => p.name);
             const opts = allNames.map(n => {
                 const g = playerMap[n]?.gender || '남';
                 const prefix = g === '여' ? '♀ ' : '';
