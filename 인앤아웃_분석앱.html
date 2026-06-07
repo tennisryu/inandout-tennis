@@ -5220,9 +5220,10 @@
             });
 
             // ── 연속 2회 이상 대기 경고 계산 ──
-            // 참여 불가 슬롯(시간 외)은 대기로 카운트하지 않음
+            // gameCounts에 있는 실제 참가자만 체크
             const consecutiveWarnings = [];
-            players.forEach(p => {
+            const scheduleParticipants = players.filter(p => gameCounts.hasOwnProperty(p.name));
+            scheduleParticipants.forEach(p => {
                 let maxConsec = 0, curConsec = 0;
                 let consecStart = -1;
                 schedule.forEach((round, ri) => {
