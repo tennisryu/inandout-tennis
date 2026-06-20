@@ -1,3 +1,47 @@
+// ── 로딩 오버레이 & 토스트 헬퍼 ──
+let _toastTimer = null;
+
+function showToast(msg, type = 'loading', duration = 0) {
+    const el = document.getElementById('app-toast');
+    const msgEl = document.getElementById('toast-msg');
+    const iconEl = document.getElementById('toast-icon-el');
+    if (!el || !msgEl) return;
+
+    el.className = '';
+    if (type === 'loading') {
+        iconEl.innerHTML = '<span class="toast-spinner"></span>';
+    } else {
+        iconEl.innerHTML = `<span class="toast-icon"></span>`;
+        el.classList.add(type === 'success' ? 'toast-success' : 'toast-error');
+    }
+    msgEl.textContent = msg;
+    el.classList.add('visible');
+
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    if (duration > 0) {
+        _toastTimer = setTimeout(hideToast, duration);
+    }
+}
+
+function hideToast() {
+    const el = document.getElementById('app-toast');
+    if (el) el.classList.remove('visible');
+}
+
+function setLoadingLabel(main, sub = '') {
+    const lbl = document.getElementById('loading-label');
+    const sub2 = document.getElementById('loading-sub');
+    if (lbl) lbl.textContent = main;
+    if (sub2) sub2.textContent = sub;
+}
+
+function hideAppOverlay() {
+    const overlay = document.getElementById('app-loading-overlay');
+    if (!overlay) return;
+    overlay.classList.add('fade-out');
+    setTimeout(() => { overlay.style.display = 'none'; }, 420);
+}
+
 // Build allPlayers from embedded match data — type/level/gender 연동
 (function() {
     const playerSet = new Set();
@@ -2223,17 +2267,43 @@ async function _loadScheduleList() {
 
 async function loadScheduleByDate(key) {
     if (!key) { alert('날짜/버전을 선택해주세요.'); return; }
+    showToast('대진 불러오는 중...', 'loading');
     try {
         const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${key}`);
-        if (!resp.ok) { alert('해당 대진을 찾을 수 없습니다.'); return; }
+        if (!resp.ok) {
+            showToast('대진을 찾을 수 없습니다', 'error', 2500);
+            return;
+        }
         const result = await resp.json();
         if (result && result.schedule) {
             currentSchedule = result;
             _saveScheduleToLocal();
             document.getElementById('sch-result').style.display = 'block';
             renderScheduleOutput();
+
+            // 이전 대진 참석자 복원
+            if (result.players && result.players.length > 0) {
+                const prevNames = new Set(result.players.map(p => p.name));
+                // 기존 회원 선택 상태 업데이트
+                data.members.forEach(m => { m._selected = prevNames.has(m.name); });
+                // 이전 참석자 중 현재 멤버 목록에 없는 사람(게스트 등) 추가
+                result.players.forEach(p => {
+                    if (!data.members.find(m => m.name === p.name)) {
+                        data.members.push({ name: p.name, gender: p.gender, level: p.level, type: p.type || '게스트', _selected: true });
+                    }
+                });
+            } else {
+                data.members.forEach(m => { if (m._selected === undefined) m._selected = false; });
+            }
+
+            renderTimeSlots();
+            renderSchPlayerList();
+            const playerCount = result.players ? result.players.length : 0;
+            showToast(`${result.date} 대진 불러오기 완료 — 참석자 ${playerCount}명 복원`, 'success', 2500);
         }
-    } catch(e) { alert('불러오기 실패: ' + e.message); }
+    } catch(e) {
+        showToast('불러오기 실패', 'error', 2500);
+    }
 }
 
 async function _populateScheduleDateSelect() {
@@ -2327,84 +2397,270 @@ function autoFillNextSlot(i) {
 }
 
 function renderSchPlayerList() {
-    const container = document.getElementById('sch-player-list');
-    const filter = document.getElementById('sch-type-filter').value;
-    const searchQuery = (document.getElementById('sch-search-input')?.value || '').trim().toLowerCase();
-    const allPlayers = data.members.map(m => ({...m}));
-    let filtered = filter === 'all' ? allPlayers : allPlayers.filter(p => p.type === filter);
-    if (searchQuery) {
-        filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery));
-    }
+    renderSchWorkspace();
+    renderSchLibrary();
+    updateSchSelectedCount();
+}
+
+function renderSchWorkspace() {
+    const container = document.getElementById('sch-workspace-chips');
+    if (!container) return;
     const slotCount = timeSlots.length;
+    const selected = data.members.filter(p => p._selected !== false);
 
-    container.innerHTML = filtered.map(p => {
-        const checked = p._selected !== false ? 'checked' : '';
+    if (selected.length === 0) {
+        container.innerHTML = '<span class="ws-empty-hint">아직 참석자가 없습니다. 위 검색창에서 이름을 검색하거나 라이브러리에서 [참석] 버튼을 눌러 추가하세요.</span>';
+        return;
+    }
+
+    container.innerHTML = selected.map(p => {
+        const gClass = p.gender === '여' ? 'ws-chip-gender-f' : 'ws-chip-gender-m';
         const levelColor = p.level >= 7 ? 'var(--win-color)' : p.level <= 4 ? 'var(--loss-color)' : 'var(--wr-mid)';
-        const levelOptions = [3,4,5,6,7,8].map(lv => `<option value="${lv}" ${lv===p.level?'selected':''}>${lv}</option>`).join('');
-        const typeOptions = ['회원','비회원','게스트'].map(t => `<option value="${t}" ${t===p.type?'selected':''}>${t}</option>`).join('');
+        const chipId = `wschip_${p.name.replace(/\s/g,'_')}`;
+        const panelId = `wspanel_${p.name.replace(/\s/g,'_')}`;
 
-        // 시간대별 가용 여부 (기본: 전체 참여)
         if (!p._availableSlots) p._availableSlots = Array.from({length: Math.max(slotCount, 8)}, () => true);
-        // 시간대 수가 늘어났으면 확장
         while (p._availableSlots.length < slotCount) p._availableSlots.push(true);
+        const activeSlots = timeSlots.filter((_, si) => p._availableSlots[si] !== false).length;
+        const allSlots = activeSlots === slotCount;
+        const slotInfo = allSlots ? '' : ` <span style="color:var(--wr-mid);font-size:10px;font-weight:700;">${activeSlots}/${slotCount}</span>`;
 
-        const slotChecks = timeSlots.map((slot, si) => {
-            const slotChecked = p._availableSlots[si] !== false ? 'checked' : '';
-            const slotLabel = slot.start.slice(0,5);
-            return `<label style="display:flex;align-items:center;gap:2px;cursor:pointer;" title="${slot.start}~${slot.end}">
-                <input type="checkbox" ${slotChecked} onchange="togglePlayerSlot('${p.name}',${si},this.checked)" style="accent-color:var(--accent);width:12px;height:12px;">
-                <span style="font-size:9px;color:var(--text-dimmed);">${si+1}</span>
-            </label>`;
-        }).join('');
-
-        // 구분별 스타일
-        const isM = p.type === '회원';
-        const isG = p.type === '게스트';
-        const borderLeftColor = isM ? '#10b981' : isG ? '#f59e0b' : '#6b7280';
-        const isGuest = p.type === '게스트';
-        const isEditable = isGuest || p.type !== '회원';
-        const gColor = p.gender === '여' ? '#ec4899' : '#3b82f6';
-        const gBg = p.gender === '여' ? 'rgba(236,72,153,0.15)' : 'rgba(59,130,246,0.15)';
-
-        // 개인별 최대 게임수 (0 = 제한없음)
+        const isEditable = p.type !== '회원';
         const curMax = p._maxGames || 0;
+        const levelOptions = [3,4,5,6,7,8].map(lv => `<option value="${lv}" ${lv===p.level?'selected':''}>${lv}</option>`).join('');
         const maxGameOptions = [0,1,2,3,4,5,6,7,8].map(v =>
             `<option value="${v}" ${v===curMax?'selected':''}>${v===0?'∞':v}</option>`
         ).join('');
 
-        // 몇 개 시간대 참여하는지 카운트
-        const activeSlots = timeSlots.filter((_, si) => p._availableSlots[si] !== false).length;
-        const allSlots = activeSlots === slotCount;
-        const slotSummary = allSlots ? '' : `<span style="font-size:9px;color:var(--wr-mid);font-weight:600;">${activeSlots}/${slotCount}</span>`;
+        const slotChecks = slotCount > 1 ? timeSlots.map((slot, si) => {
+            const slotChecked = p._availableSlots[si] !== false ? 'checked' : '';
+            return `<label style="display:flex;align-items:center;gap:3px;cursor:pointer;background:${p._availableSlots[si]!==false?'rgba(76,175,80,0.12)':'var(--bg-primary)'};border:1px solid ${p._availableSlots[si]!==false?'var(--accent)':'var(--border-secondary)'};border-radius:6px;padding:3px 6px;" title="${slot.start}~${slot.end}">
+                <input type="checkbox" ${slotChecked} onchange="togglePlayerSlotWs('${p.name}',${si},this.checked)" style="accent-color:var(--accent);width:12px;height:12px;">
+                <span style="font-size:11px;color:var(--text-secondary);font-weight:600;">${slot.start.slice(0,5)}</span>
+            </label>`;
+        }).join('') : '';
 
-        return `<div style="padding:9px 12px;background:var(--bg-secondary);border:1px solid var(--border-primary);border-left:3px solid ${borderLeftColor};border-radius:10px;transition:border-color 0.2s;"
-            onmouseover="this.style.borderColor='var(--accent)';this.style.borderLeftColor='${borderLeftColor}'" onmouseout="this.style.borderColor='var(--border-primary)';this.style.borderLeftColor='${borderLeftColor}'">
-            <div style="display:flex;align-items:center;gap:8px;">
-                <input type="checkbox" ${checked} onchange="toggleSchPlayer('${p.name}',this.checked)" style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;">
-                <div style="flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;gap:5px;">
-                        <span style="font-weight:700;font-size:13.5px;color:var(--text-primary);white-space:nowrap;">${p.name}</span>
-                        ${isEditable
-                            ? `<select onchange="changePlayerGender('${p.name}',this.value)" style="color:${gColor};background:${gBg};font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;border:1px solid transparent;cursor:pointer;font-family:inherit;appearance:none;-webkit-appearance:none;text-align:center;width:22px;">
-                                <option value="남" ${p.gender==='남'?'selected':''}>남</option><option value="여" ${p.gender==='여'?'selected':''}>여</option>
-                               </select>`
-                            : `<span style="color:${gColor};background:${gBg};font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.4;">${p.gender}</span>`}
-                        ${slotSummary}
-                    </div>
+        const typeOptions = ['회원','비회원','게스트'].map(t => `<option value="${t}" ${t===p.type?'selected':''}>${t}</option>`).join('');
+
+        return `<div id="${chipId}" style="display:flex;flex-direction:column;">
+            <div class="ws-chip" onclick="toggleWsChip('${p.name}')">
+                <div class="ws-chip-main">
+                    <span class="ws-chip-name">${p.name}</span>
+                    <span class="${gClass}">${p.gender}</span>
+                    <span class="ws-chip-level" style="color:${levelColor};">Lv${p.level}</span>
+                    ${slotInfo}
                 </div>
-                <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
-                    <select onchange="changePlayerMaxGames('${p.name}',parseInt(this.value))" title="최대 게임수" style="background:${curMax>0?'rgba(240,224,80,0.1)':'var(--input-bg)'};color:${curMax>0?'var(--wr-mid)':'var(--text-dimmed)'};border:1px solid ${curMax>0?'rgba(240,224,80,0.3)':'var(--border-secondary)'};border-radius:6px;padding:2px 1px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;width:36px;text-align:center;">${maxGameOptions}</select>
-                    <select onchange="changePlayerLevel('${p.name}',parseInt(this.value))" title="레벨" style="background:var(--input-bg);color:${levelColor};border:1px solid var(--border-secondary);border-radius:6px;padding:2px 1px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;width:42px;text-align:center;">${levelOptions}</select>
-                    <select onchange="changePlayerType('${p.name}',this.value)" title="구분 변경" style="background:none;color:var(--text-muted);border:none;padding:0;font-size:10px;font-family:inherit;cursor:pointer;width:44px;text-align:center;appearance:none;-webkit-appearance:none;">${typeOptions}</select>
-                    ${isEditable ? `<button onclick="removeSchPlayer('${p.name}')" title="삭제" style="background:none;border:none;color:var(--loss-color);cursor:pointer;font-size:13px;padding:0 2px;opacity:0.6;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">✕</button>` : ''}
+                <div class="ws-chip-remove" onclick="event.stopPropagation(); removeFromWorkspace('${p.name}')">✕</div>
+            </div>
+            <div id="${panelId}" class="ws-chip-panel" style="display:none;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                    ${slotCount > 1 ? `<div><div style="font-size:11px;color:var(--text-dimmed);margin-bottom:4px;">시간대</div><div style="display:flex;gap:4px;flex-wrap:wrap;">${slotChecks}</div></div>` : ''}
+                    <div><div style="font-size:11px;color:var(--text-dimmed);margin-bottom:4px;">최대 게임</div>
+                        <select onchange="changePlayerMaxGames('${p.name}',parseInt(this.value));renderSchWorkspace();" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-secondary);border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer;">${maxGameOptions}</select>
+                    </div>
+                    <div><div style="font-size:11px;color:var(--text-dimmed);margin-bottom:4px;">레벨</div>
+                        <select onchange="changePlayerLevel('${p.name}',parseInt(this.value));" style="background:var(--input-bg);color:${levelColor};border:1px solid var(--border-secondary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;">${levelOptions}</select>
+                    </div>
+                    ${isEditable ? `<div><div style="font-size:11px;color:var(--text-dimmed);margin-bottom:4px;">성별</div>
+                        <select onchange="changePlayerGender('${p.name}',this.value);" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-secondary);border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer;">
+                            <option value="남" ${p.gender==='남'?'selected':''}>남</option><option value="여" ${p.gender==='여'?'selected':''}>여</option>
+                        </select></div>` : ''}
+                    ${isEditable ? `<div><div style="font-size:11px;color:var(--text-dimmed);margin-bottom:4px;">구분</div>
+                        <select onchange="changePlayerType('${p.name}',this.value);" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-secondary);border-radius:6px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer;">${typeOptions}</select></div>` : ''}
+                    ${p.type === '게스트' ? `<button onclick="removeSchPlayer('${p.name}')" style="background:none;border:1px solid var(--loss-color);color:var(--loss-color);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:6px;font-family:inherit;align-self:flex-end;">삭제</button>` : ''}
                 </div>
             </div>
-            ${slotCount > 1 ? `<div style="display:flex;gap:6px;margin-top:5px;margin-left:23px;flex-wrap:wrap;">${slotChecks}</div>` : ''}
         </div>`;
     }).join('');
 
-    updateSchSelectedCount();
+    // 재렌더 후 열려있던 패널 상태 복원
+    _wsExpandedSet.forEach(name => _applyWsChipState(name));
 }
+
+function renderSchLibrary() {
+    const container = document.getElementById('sch-player-list');
+    if (!container) return;
+    const filter = document.getElementById('sch-type-filter')?.value || 'all';
+    const searchQuery = (document.getElementById('sch-lib-search')?.value || '').trim().toLowerCase();
+    const slotCount = timeSlots.length;
+
+    let filtered = filter === 'all' ? data.members : data.members.filter(p => p.type === filter);
+    if (searchQuery) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery));
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1;color:var(--text-dimmed);font-size:13px;padding:12px;">검색 결과가 없습니다.</div>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(p => {
+        const isSelected = p._selected !== false;
+        const gColor = p.gender === '여' ? '#ec4899' : '#3b82f6';
+        const gBg = p.gender === '여' ? 'rgba(236,72,153,0.15)' : 'rgba(59,130,246,0.15)';
+        const levelColor = p.level >= 7 ? 'var(--win-color)' : p.level <= 4 ? 'var(--loss-color)' : 'var(--wr-mid)';
+        const typeBadge = p.type === '게스트' ? '<span style="font-size:10px;color:#f59e0b;font-weight:700;">게스트</span>' :
+                          p.type === '비회원' ? '<span style="font-size:10px;color:#6b7280;font-weight:700;">비회원</span>' : '';
+        const actionBtn = isSelected
+            ? `<button class="lib-cancel-btn" onclick="removeFromWorkspace('${p.name}')">참석 취소</button>`
+            : `<button class="lib-add-btn" onclick="addToWorkspace('${p.name}')">참석</button>`;
+        const deleteBtn = p.type === '게스트'
+            ? `<button onclick="removeSchPlayer('${p.name}')" title="삭제" style="background:none;border:none;color:var(--loss-color);cursor:pointer;font-size:11px;padding:0 2px;opacity:0.5;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">✕</button>` : '';
+
+        return `<div class="lib-card ${isSelected ? 'lib-selected' : ''}">
+            <div class="lib-card-info">
+                <div style="display:flex;align-items:center;gap:4px;">
+                    <span class="lib-card-name">${p.name}</span>
+                    ${typeBadge}
+                </div>
+                <div class="lib-card-meta">
+                    <span style="color:${gColor};background:${gBg};font-size:10px;font-weight:700;padding:1px 4px;border-radius:4px;">${p.gender}</span>
+                    <span style="color:${levelColor};font-weight:700;margin-left:4px;">Lv${p.level}</span>
+                </div>
+            </div>
+            ${actionBtn}
+            ${deleteBtn}
+        </div>`;
+    }).join('');
+}
+
+function addToWorkspace(name) {
+    const m = data.members.find(m => m.name === name);
+    if (m) { m._selected = true; renderSchPlayerList(); }
+}
+
+function removeFromWorkspace(name) {
+    const m = data.members.find(m => m.name === name);
+    if (m) { m._selected = false; _wsExpandedSet.delete(name); renderSchPlayerList(); }
+}
+
+const _wsExpandedSet = new Set();
+
+function toggleWsChip(name) {
+    if (_wsExpandedSet.has(name)) {
+        _wsExpandedSet.delete(name);
+    } else {
+        _wsExpandedSet.add(name);
+    }
+    _applyWsChipState(name);
+}
+
+function _applyWsChipState(name) {
+    const panelId = `wspanel_${name.replace(/\s/g,'_')}`;
+    const chipId = `wschip_${name.replace(/\s/g,'_')}`;
+    const panel = document.getElementById(panelId);
+    const chipWrapper = document.getElementById(chipId);
+    if (!panel) return;
+    const open = _wsExpandedSet.has(name);
+    panel.style.display = open ? 'block' : 'none';
+    const chipEl = chipWrapper?.querySelector('.ws-chip');
+    if (chipEl) chipEl.classList.toggle('chip-expanded', open);
+}
+
+let _wsLastQuery = '';
+let _wsDropdownMatches = [];
+
+function schQuickSearch(query) {
+    const dropdown = document.getElementById('ws-dropdown');
+    if (!dropdown) return;
+    const q = query.trim().toLowerCase();
+    _wsLastQuery = query.trim();
+
+    if (!q) { dropdown.style.display = 'none'; _wsDropdownMatches = []; return; }
+
+    _wsDropdownMatches = data.members.filter(m => m.name.toLowerCase().includes(q));
+    if (_wsDropdownMatches.length === 0) {
+        dropdown.innerHTML = `<div class="ws-dd-guest-add" onclick="schAddGuestFromSearch('${query.trim()}')">+ "${query.trim()}" 게스트로 추가</div>`;
+    } else {
+        dropdown.innerHTML = _wsDropdownMatches.map((m, i) => {
+            const alreadyIn = m._selected !== false;
+            const gColor = m.gender === '여' ? '#ec4899' : '#3b82f6';
+            return `<div class="ws-dd-item${i === 0 ? ' ws-dd-first' : ''}" onclick="schQuickAdd('${m.name}')">
+                <span style="font-weight:700;">${m.name}</span>
+                <span style="margin-left:6px;font-size:11px;color:${gColor};">${m.gender}</span>
+                <span style="margin-left:4px;font-size:11px;color:var(--text-dimmed);">Lv${m.level}</span>
+                ${alreadyIn ? '<span style="margin-left:6px;font-size:10px;color:var(--accent-text);font-weight:700;">✓ 참석 중</span>' : ''}
+            </div>`;
+        }).join('') + `<div class="ws-dd-guest-add" onclick="schAddGuestFromSearch('${query.trim()}')">+ 새 게스트: "${query.trim()}"</div>`;
+    }
+    dropdown.style.display = 'block';
+}
+
+function schQuickSearchKeydown(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (_wsDropdownMatches.length > 0) {
+        // 매칭 결과가 있으면 첫 번째 항목 바로 추가
+        schQuickAdd(_wsDropdownMatches[0].name);
+    } else if (_wsLastQuery) {
+        // 매칭 없으면 게스트 추가 흐름
+        schAddGuestFromSearch(_wsLastQuery);
+    }
+}
+
+function schQuickAdd(name) {
+    addToWorkspace(name);
+    const inp = document.getElementById('sch-search-input');
+    if (inp) inp.value = '';
+    const dd = document.getElementById('ws-dropdown');
+    if (dd) dd.style.display = 'none';
+}
+
+function schAddGuestFromSearch(name) {
+    if (!name) return;
+    if (data.members.some(m => m.name === name)) {
+        addToWorkspace(name);
+    } else {
+        document.getElementById('sch-guest-name').value = name;
+        const drawer = document.getElementById('sch-guest-drawer');
+        if (drawer) drawer.style.display = 'block';
+    }
+    const inp = document.getElementById('sch-search-input');
+    if (inp) inp.value = '';
+    const dd = document.getElementById('ws-dropdown');
+    if (dd) dd.style.display = 'none';
+}
+
+function toggleGuestDrawer() {
+    const el = document.getElementById('sch-guest-drawer');
+    if (!el) return;
+    const open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : 'block';
+    if (!open) document.getElementById('sch-guest-name')?.focus();
+}
+
+function toggleSchLibrary() {
+    const body = document.getElementById('sch-library-body');
+    const icon = document.getElementById('lib-toggle-icon');
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    if (icon) icon.style.transform = open ? '' : 'rotate(180deg)';
+    if (!open) renderSchLibrary();
+}
+
+function toggleSchOptions() {
+    const el = document.getElementById('sch-options-drawer');
+    if (!el) return;
+    el.style.display = el.style.display !== 'none' ? 'none' : 'block';
+}
+
+function togglePlayerSlotWs(name, slotIdx, checked) {
+    const p = data.members.find(m => m.name === name);
+    if (p) {
+        if (!p._availableSlots) p._availableSlots = Array.from({length: timeSlots.length}, () => true);
+        p._availableSlots[slotIdx] = checked;
+        renderSchWorkspace();
+        updateSchSelectedCount();
+    }
+}
+
+// 외부 클릭시 드롭다운 닫기 (document 레벨)
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('ws-dropdown');
+    const inp = document.getElementById('sch-search-input');
+    if (dd && inp && !inp.contains(e.target) && !dd.contains(e.target)) {
+        dd.style.display = 'none';
+    }
+});
 
 function togglePlayerSlot(name, slotIdx, checked) {
     const p = data.members.find(m => m.name === name);
@@ -2490,11 +2746,11 @@ function changePlayerType(name, newType) {
 function toggleSchPlayer(name, checked) {
     const m = data.members.find(m => m.name === name);
     if (m) m._selected = checked;
-    updateSchSelectedCount();
+    renderSchPlayerList();
 }
 
 function schSelectAll(select) {
-    const filter = document.getElementById('sch-type-filter').value;
+    const filter = document.getElementById('sch-type-filter')?.value || 'all';
     data.members.forEach(m => {
         if (filter === 'all' || m.type === filter) m._selected = select;
     });
@@ -2525,26 +2781,28 @@ function _recommendCourts(n) {
 
 function updateSchSelectedCount() {
     const selected = getSchSelectedPlayers();
-    const el = document.getElementById('sch-selected-count');
+    const badge = document.getElementById('sch-selected-count');
+    const infoEl = document.getElementById('sch-count-info');
     const maxCourts = Math.max(...timeSlots.map(s => s.courts));
     const totalRounds = _expandTimeSlotsToRounds().length;
     const n = selected.length;
     const info = _recommendCourts(n);
 
-    let html = `선택: <strong style="color:var(--accent-text);">${n}명</strong>`;
+    if (badge) badge.textContent = `${n}명`;
+
+    if (!infoEl) return;
     if (n < 4) {
-        html += ` <span style="color:var(--loss-color);">— 최소 4명 필요</span>`;
+        infoEl.innerHTML = `<span style="color:var(--loss-color);">최소 4명 필요</span>`;
     } else {
-        html += ` <span style="color:var(--text-muted);">(${totalRounds}라운드)</span>`;
-        html += `<div style="margin-top:6px;padding:6px 10px;background:var(--bg-tertiary);border-radius:8px;font-size:12px;display:flex;align-items:center;gap:6px;">`;
-        html += `<span style="color:var(--accent-text);font-weight:700;">추천 ${info.rec}면</span>`;
-        html += `<span style="color:var(--text-muted);">경기 ${info.play}명 / 대기 ${info.wait}명</span>`;
+        let html = `<span style="color:var(--accent-text);font-weight:700;">${n}명</span>`;
+        html += ` <span style="color:var(--text-muted);">${totalRounds}라운드</span>`;
+        html += ` · 추천 <span style="color:var(--accent-text);font-weight:700;">${info.rec}면</span>`;
+        html += ` <span style="color:var(--text-muted);">(경기 ${info.play} / 대기 ${info.wait})</span>`;
         if (info.rec !== maxCourts) {
-            html += `<span style="color:var(--wr-mid);font-size:11px;margin-left:4px;">현재 설정: 최대 ${maxCourts}면</span>`;
+            html += ` <span style="color:var(--wr-mid);font-size:11px;">현재 최대 ${maxCourts}면</span>`;
         }
-        html += `</div>`;
+        infoEl.innerHTML = html;
     }
-    el.innerHTML = html;
 }
 
 function getSchSelectedPlayers() {
@@ -2557,7 +2815,7 @@ function addSchGuest() {
     const level = parseInt(document.getElementById('sch-guest-level').value);
     if (!name) { alert('이름을 입력하세요.'); return; }
     if (data.members.some(m => m.name === name)) {
-        alert('이미 존재하는 이름입니다.'); return;
+        alert('이미 라이브러리에 있는 이름입니다. 워크스페이스에 추가하려면 이름을 검색하거나 라이브러리에서 [+ 추가]를 누르세요.'); return;
     }
     data.members.push({name, gender, level, type:'게스트', _selected:true});
     if (!data.allPlayers.find(p => p.name === name)) {
@@ -2565,6 +2823,8 @@ function addSchGuest() {
         data.allPlayers.sort((a,b) => a.name.localeCompare(b.name,'ko'));
     }
     document.getElementById('sch-guest-name').value = '';
+    const drawer = document.getElementById('sch-guest-drawer');
+    if (drawer) drawer.style.display = 'none';
     renderSchPlayerList();
     if (typeof renderMemberList === 'function') renderMemberList();
     autoSyncMembers();
@@ -3254,9 +3514,10 @@ async function _generateScheduleFromServer(players, date) {
         } : null,
     };
 
-    const btn = document.querySelector('.submit-btn');
+    const btn = document.getElementById('sch-gen-btn');
     const origText = btn ? btn.textContent : '';
-    if (btn) btn.textContent = '⏳ 생성 중...';
+    if (btn) { btn.textContent = '⏳ 생성 중...'; btn.disabled = true; }
+    showToast('대진 생성 중...', 'loading');
 
     try {
         const res = await fetch(SCHEDULE_SERVER_URL + '/api/generate-schedule', {
@@ -3265,7 +3526,10 @@ async function _generateScheduleFromServer(players, date) {
             body: JSON.stringify(body),
         });
         const result = await res.json();
-        if (!res.ok) { alert(result.error || '서버 오류'); return; }
+        if (!res.ok) {
+            showToast('대진 생성 실패: ' + (result.error || '서버 오류'), 'error', 3000);
+            return;
+        }
 
         currentSchedule = {
             date: result.date,
@@ -3276,10 +3540,11 @@ async function _generateScheduleFromServer(players, date) {
         _saveScheduleToServer();
         document.getElementById('sch-result').style.display = 'block';
         renderScheduleOutput();
+        showToast('대진 생성 완료!', 'success', 2000);
     } catch(e) {
-        alert('서버 호출 실패: ' + e.message);
+        showToast('서버 연결 실패', 'error', 3000);
     } finally {
-        if (btn) btn.textContent = origText;
+        if (btn) { btn.textContent = origText; btn.disabled = false; }
     }
 }
 
@@ -3672,31 +3937,30 @@ function renderScheduleOutput() {
     const consecutiveWarnings = [];
     const scheduleParticipants = players.filter(p => gameCounts.hasOwnProperty(p.name));
     scheduleParticipants.forEach(p => {
-        let maxConsec = 0, curConsec = 0;
-        let consecStart = -1;
+        let maxConsec = 0;
+        let curConsec = 0, curStart = -1;
+        let bestStart = -1, bestEnd = -1;
         schedule.forEach((round, ri) => {
-            // 이 선수가 해당 슬롯에 참여 가능한지 확인
             const available = _isPlayerAvailableForRound(p.name, ri);
-            if (!available) {
-                // 참여 불가 슬롯은 무시 — 연속 카운트 리셋
-                curConsec = 0;
-                consecStart = -1;
-                return;
-            }
-            const playing = round.courts.some(c =>
-                [c.a1, c.a2, c.b1, c.b2].includes(p.name)
-            );
+            if (!available) { curConsec = 0; curStart = -1; return; }
+            const playing = round.courts.some(c => [c.a1, c.a2, c.b1, c.b2].includes(p.name));
             if (!playing) {
-                if (curConsec === 0) consecStart = ri;
+                if (curConsec === 0) curStart = ri;
                 curConsec++;
-                if (curConsec >= 2 && curConsec > maxConsec) maxConsec = curConsec;
+                if (curConsec >= 2 && curConsec > maxConsec) {
+                    maxConsec = curConsec;
+                    bestStart = curStart;
+                    bestEnd = ri;
+                }
             } else {
                 curConsec = 0;
-                consecStart = -1;
+                curStart = -1;
             }
         });
         if (maxConsec >= 2) {
-            consecutiveWarnings.push({ name: p.name, maxConsec });
+            const startTime = schedule[bestStart]?.timeStart || '';
+            const endTime = schedule[bestEnd]?.timeEnd || '';
+            consecutiveWarnings.push({ name: p.name, maxConsec, startTime, endTime });
         }
     });
 
@@ -3706,8 +3970,15 @@ function renderScheduleOutput() {
             .map(w => {
                 const g = playerMap[w.name]?.gender || '남';
                 const c = g === '여' ? '#ec4899' : '#3b82f6';
-                return `<span style="color:${c};font-weight:700;">${w.name}</span><span style="color:var(--text-muted);font-size:11px;">(${w.maxConsec}회 연속)</span>`;
-            }).join('  ');
+                const timeRange = w.startTime
+                    ? `<span style="color:var(--text-dimmed);font-size:11px;margin-left:2px;">${w.startTime}~${w.endTime}</span>`
+                    : '';
+                return `<div style="display:flex;align-items:center;gap:4px;">
+                    <span style="color:${c};font-weight:700;">${w.name}</span>
+                    <span style="color:var(--text-muted);font-size:11px;">(${w.maxConsec}회 연속)</span>
+                    ${timeRange}
+                </div>`;
+            }).join('');
         html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:8px;margin-top:4px;">
             <span style="font-size:16px;flex-shrink:0;">⚠️</span>
             <div>
@@ -4490,7 +4761,7 @@ function initRecorder() {
 const _tmuSavedMap = {};
 
 function initTodayMatchup() {
-    // 탭 진입 시 switchTab 콜백이 호출하므로 별도 초기 로드 불필요
+    tmuRefreshSchedule();
 }
 
 async function tmuRefreshSchedule() {
@@ -5873,29 +6144,41 @@ function _initUI() {
 }
 
 async function _initFromDB() {
+    setLoadingLabel('데이터 불러오는 중...', '서버에 연결하고 있습니다');
     try {
+        setLoadingLabel('회원 / 경기 기록 로드 중...');
         const [membersRes, matchesRes] = await Promise.allSettled([
             fetch(`${SCHEDULE_SERVER}/api/members`),
             fetch(`${SCHEDULE_SERVER}/api/matches`)
         ]);
 
+        let memberCount = 0, matchCount = 0;
+
         if (membersRes.status === 'fulfilled' && membersRes.value.ok) {
             data.members = await membersRes.value.json();
-            console.log('[DB] 회원 로드:', data.members.length, '명');
+            memberCount = data.members.length;
+            console.log('[DB] 회원 로드:', memberCount, '명');
         } else {
             console.warn('[DB] 회원 로드 실패 — 기존 데이터 사용');
         }
 
         if (matchesRes.status === 'fulfilled' && matchesRes.value.ok) {
             data.matches = await matchesRes.value.json();
-            console.log('[DB] 경기 로드:', data.matches.length, '경기');
+            matchCount = data.matches.length;
+            console.log('[DB] 경기 로드:', matchCount, '경기');
         } else {
             console.warn('[DB] 경기 로드 실패 — 기존 데이터 사용');
         }
+
+        setLoadingLabel('준비 완료', `회원 ${memberCount}명 · 경기 ${matchCount}건`);
     } catch(e) {
         console.warn('[DB] 로드 실패:', e.message);
+        setLoadingLabel('오프라인 모드', '서버에 연결할 수 없어 저장된 데이터를 사용합니다');
+        await new Promise(r => setTimeout(r, 900));
     }
 
+    await new Promise(r => setTimeout(r, 300));
+    hideAppOverlay();
     _initUI();
 }
 
