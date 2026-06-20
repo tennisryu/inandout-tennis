@@ -4945,7 +4945,7 @@ function _tmuRenderCourt(court, ri, ci, today) {
         </div>
         <div style="display:flex;gap:8px;margin-top:6px;">
             <button class="tmu-edit-btn" onclick="tmuEditCourt(${ri},${ci},'${today}')">✏️ 점수 수정</button>
-            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--wr-mid);border-color:var(--wr-mid);">🔀 대진 변경</button>
+            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--lineup-btn-color);border-color:var(--lineup-btn-border);">🔀 대진 변경</button>
         </div>`;
     } else {
         bodyHtml = `
@@ -4983,7 +4983,7 @@ function _tmuRenderCourt(court, ri, ci, today) {
                     onclick="tmuSaveCourtScore(${ri},${ci},'${court.a1}','${court.a2}','${court.b1}','${court.b2}','${today}')">
                 💾 이 경기 저장
             </button>
-            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--wr-mid);border-color:var(--wr-mid);">🔀 대진 변경</button>
+            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--lineup-btn-color);border-color:var(--lineup-btn-border);">🔀 대진 변경</button>
         </div>`;
     }
 
