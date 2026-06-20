@@ -1,0 +1,24 @@
+{
+  "name": "인앤아웃 테니스",
+  "short_name": "인앤아웃",
+  "description": "인앤아웃 테니스 클럽 더블스 관리 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1a10",
+  "theme_color": "#1a6e3a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='96' fill='%231a6e3a'/%3E%3Ccircle cx='96' cy='96' r='72' fill='none' stroke='%23f0e050' stroke-width='8'/%3E%3Cpath d='M40 60 C64 84,64 108,40 132' fill='none' stroke='%23f0e050' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M152 60 C128 84,128 108,152 132' fill='none' stroke='%23f0e050' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='256' fill='%231a6e3a'/%3E%3Ccircle cx='256' cy='256' r='192' fill='none' stroke='%23f0e050' stroke-width='20'/%3E%3Cpath d='M100 156 C168 224,168 288,100 356' fill='none' stroke='%23f0e050' stroke-width='20' stroke-linecap='round'/%3E%3Cpath d='M412 156 C344 224,344 288,412 356' fill='none' stroke='%23f0e050' stroke-width='20' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

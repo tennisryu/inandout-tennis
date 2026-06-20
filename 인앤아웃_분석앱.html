@@ -2,7 +2,13 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a6e3a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="인앤아웃">
+    <link rel="manifest" href="/manifest.json">
     <title>인앤아웃 테니스 클럽 - 더블스 분석</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@900&display=swap');
@@ -1462,47 +1468,125 @@
             text-align: center;
             margin-bottom: 12px;
         }
+        /* ── 모바일 공통 ── */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+                margin: 10px auto;
+            }
+
+            /* 헤더 축소 */
+            .header { height: 72px; }
+            .header .header-club-bold { font-size: 18px; letter-spacing: 1px; }
+            .header .header-club-script { font-size: 14px; }
+            .header .header-club-sub { font-size: 9px; }
+
+            /* 탭바: 가로 스크롤 */
+            .tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                gap: 0;
+                margin-bottom: 12px;
+                padding-bottom: 0;
+            }
+            .tabs::-webkit-scrollbar { display: none; }
+            .tab-button {
+                padding: 10px 14px;
+                font-size: 13px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            /* 카드 패딩 축소 */
+            .card { padding: 12px 14px !important; margin-bottom: 10px !important; }
+
+            /* 테이블 */
+            table { font-size: 11px; }
+            table th, table td { padding: 6px 5px; }
+
+            /* 폼 레이아웃 */
+            .form-row { grid-template-columns: 1fr; }
+            .match-row { grid-template-columns: 1fr; gap: 5px; }
+            .summary-section { grid-template-columns: 1fr; }
+            .stat-grid { grid-template-columns: 1fr 1fr; }
+
+            /* Today's Match-up */
+            .tmu-header-bar { padding: 10px 12px 8px; }
+            .tmu-header-top { gap: 6px; }
+            .tmu-title { font-size: 17px; }
+            .tmu-subtitle { font-size: 11px; }
+            .tmu-header-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                align-items: center;
+            }
+            #tmu-date-input { font-size: 12px; padding: 4px 8px; }
+            .tmu-round-header { padding: 10px 12px; }
+            .tmu-round-time { font-size: 12px; }
+            .tmu-court-card { padding: 10px 12px; }
+            .tmu-players { gap: 4px; flex-wrap: wrap; }
+            .tmu-player-name { font-size: 13px; }
+            .tmu-score-input { width: 48px; height: 44px; font-size: 22px; }
+            .tmu-score-btn  { width: 36px; height: 30px; font-size: 15px; }
+            .tmu-saved-score { font-size: 24px; }
+
+            /* 대진 작성 워크스페이스 */
+            #sch-workspace-chips { gap: 6px; }
+            .ws-chip-main { padding: 5px 7px 5px 10px; gap: 5px; }
+            .ws-chip-name { font-size: 12px; }
+            .ws-chip-panel { padding: 8px 10px; }
+
+            /* 라이브러리 그리드: 2열 */
+            #sch-player-list {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+                gap: 6px !important;
+            }
+            .lib-card { padding: 7px 10px; }
+            .lib-card-name { font-size: 12px; }
+            .lib-add-btn, .lib-cancel-btn { padding: 4px 8px; font-size: 10px; }
+
+            /* 대진 작성 액션 바 */
+            #scheduler .card > div[style*="justify-content:space-between"] {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+        }
+
+        /* ── 소형 폰 (iPhone SE 등) ── */
         @media (max-width: 480px) {
             .tmu-score-input { width: 50px; height: 46px; font-size: 24px; }
             .tmu-score-btn  { width: 38px; height: 32px; font-size: 16px; }
             .tmu-saved-score { font-size: 26px; }
+
+            /* 탭 더 작게 */
+            .tab-button { padding: 9px 11px; font-size: 12px; }
+
+            /* 헤더 더 축소 */
+            .header { height: 60px; }
+            .header .header-club-bold { font-size: 15px; }
+            .header .header-club-script { font-size: 12px; }
+
+            /* tmu 날짜 헤더 세로 배치 */
+            .tmu-header-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+            #tmu-status-badge { align-self: flex-start; }
+
+            /* 라이브러리 1열 */
+            #sch-player-list {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            /* 워크스페이스 버튼 줄바꿈 허용 */
+            #sch-workspace-chips { gap: 5px; }
         }
 
-        @media (max-width: 768px) {
-            .stat-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            table {
-                font-size: 12px;
-            }
-
-            table th, table td {
-                padding: 8px;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .match-row {
-                grid-template-columns: 1fr;
-                gap: 5px;
-            }
-
-            .summary-section {
-                grid-template-columns: 1fr;
-            }
-
-            .header .header-club-bold {
-                font-size: 18px;
-            }
-            .header .header-club-script {
-                font-size: 14px;
-            }
-            .header {
-                height: 80px;
-            }
+        /* ── iOS Safe Area (노치/홈바) ── */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            body { padding-bottom: env(safe-area-inset-bottom); }
+            .tabs { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
         }
     </style>
 </head>
@@ -2254,5 +2338,12 @@
 
     <script src="/data.js"></script>
     <script src="/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    </script>
 </body>
 </html>

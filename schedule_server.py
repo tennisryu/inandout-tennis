@@ -1071,6 +1071,17 @@ async def app_js():
     return FileResponse(Path(__file__).parent / "app.js", media_type="application/javascript")
 
 
+@app.get("/manifest.json")
+async def manifest():
+    return FileResponse(Path(__file__).parent / "manifest.json", media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+async def service_worker():
+    return FileResponse(Path(__file__).parent / "sw.js", media_type="application/javascript",
+                        headers={"Service-Worker-Allowed": "/"})
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 5050))
