@@ -855,6 +855,209 @@
             background: var(--bg-hover);
         }
 
+        /* ── 로딩 오버레이 & 토스트 ── */
+        #app-loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            transition: opacity 0.4s ease;
+        }
+        #app-loading-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(76,175,80,0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-ball {
+            width: 44px;
+            height: 44px;
+            position: relative;
+        }
+        .loading-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            letter-spacing: 0.03em;
+        }
+        .loading-sub {
+            font-size: 12px;
+            color: var(--text-dimmed);
+            margin-top: -12px;
+        }
+        #app-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 24px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 8000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        #app-toast.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        #app-toast .toast-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(76,175,80,0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+        #app-toast.toast-success { border-color: rgba(76,175,80,0.5); }
+        #app-toast.toast-error { border-color: rgba(239,68,68,0.5); color: #fca5a5; }
+        #app-toast.toast-success .toast-icon::before { content: '✓'; color: var(--accent-text); font-weight: 700; }
+        #app-toast.toast-error .toast-icon::before { content: '✗'; color: #ef4444; font-weight: 700; }
+
+        /* ── 대진 작성 워크스페이스 / 라이브러리 스타일 ── */
+        .ws-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0;
+            background: var(--bg-tertiary);
+            border: 1.5px solid var(--border-secondary);
+            border-radius: 20px;
+            padding: 0;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            overflow: hidden;
+            position: relative;
+        }
+        .ws-chip:hover { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(76,175,80,0.15); }
+        .ws-chip.chip-expanded { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(76,175,80,0.2); }
+        .ws-chip-main {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px 5px 12px;
+        }
+        .ws-chip-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+        .ws-chip-gender-m { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 6px; color: #3b82f6; background: rgba(59,130,246,0.15); }
+        .ws-chip-gender-f { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 6px; color: #ec4899; background: rgba(236,72,153,0.15); }
+        .ws-chip-level { font-size: 10px; font-weight: 700; color: var(--text-dimmed); }
+        .ws-chip-remove {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 9px;
+            border-left: 1px solid var(--border-secondary);
+            color: var(--text-muted);
+            font-size: 11px;
+            transition: color 0.15s, background 0.15s;
+        }
+        .ws-chip-remove:hover { color: var(--loss-color); background: rgba(239,68,68,0.1); }
+        .ws-chip-panel {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-top: 6px;
+            font-size: 12px;
+        }
+        .ws-empty-hint {
+            color: var(--text-dimmed);
+            font-size: 13px;
+            padding: 12px 0;
+            font-style: italic;
+        }
+        .lib-card {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: border-color 0.15s;
+        }
+        .lib-card:hover { border-color: var(--border-secondary); }
+        .lib-card.lib-selected { border-color: rgba(76,175,80,0.4); background: rgba(76,175,80,0.06); }
+        .lib-card-info { flex: 1; min-width: 0; }
+        .lib-card-name { font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lib-card-meta { font-size: 11px; color: var(--text-dimmed); margin-top: 1px; }
+        .lib-add-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            color: var(--accent-text);
+            background: rgba(76,175,80,0.1);
+            cursor: pointer;
+            transition: background 0.15s;
+            flex-shrink: 0;
+            font-family: inherit;
+        }
+        .lib-add-btn:hover { background: rgba(76,175,80,0.25); }
+        .lib-in-badge {
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 8px;
+            color: var(--accent-text);
+            background: rgba(76,175,80,0.15);
+            flex-shrink: 0;
+        }
+        .lib-cancel-btn {
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1px solid rgba(239,68,68,0.4);
+            color: #fca5a5;
+            background: rgba(239,68,68,0.08);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            flex-shrink: 0;
+            font-family: inherit;
+        }
+        .lib-cancel-btn:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.7); }
+        #ws-dropdown .ws-dd-item {
+            padding: 9px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-primary);
+            transition: background 0.1s;
+        }
+        #ws-dropdown .ws-dd-item:last-child { border-bottom: none; }
+        #ws-dropdown .ws-dd-item:hover { background: var(--bg-hover); }
+        #ws-dropdown .ws-dd-guest-add {
+            padding: 9px 14px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #f59e0b;
+            font-style: italic;
+        }
+        #ws-dropdown .ws-dd-guest-add:hover { background: var(--bg-hover); }
+
         /* ── Today's Match-up 탭 전용 스타일 ── */
         .tmu-header-bar {
             background: linear-gradient(135deg, #14301a, #1a3a22);
@@ -1304,6 +1507,18 @@
     </style>
 </head>
 <body>
+    <!-- 앱 초기 로딩 오버레이 -->
+    <div id="app-loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-label" id="loading-label">데이터 불러오는 중...</div>
+        <div class="loading-sub" id="loading-sub"></div>
+    </div>
+    <!-- 토스트 알림 -->
+    <div id="app-toast">
+        <span id="toast-icon-el"></span>
+        <span id="toast-msg"></span>
+    </div>
+
     <div class="header">
         <div class="header-divider"></div>
         <div class="header-hline"></div>
@@ -1354,16 +1569,16 @@
 
     <div class="container">
         <div class="tabs">
-            <button class="tab-button active" onclick="switchTab(event, 'summary')">회원 요약</button>
+            <button class="tab-button active" onclick="switchTab(event, 'todaymatchup')">Today's Match-up</button>
+            <button class="tab-button" onclick="switchTab(event, 'scheduler')">대진 작성</button>
+            <button class="tab-button" onclick="switchTab(event, 'recorder')">경기 기록</button>
+            <button class="tab-button" onclick="switchTab(event, 'summary')">회원 요약</button>
             <button class="tab-button" onclick="switchTab(event, 'mvp')">MVP</button>
             <button class="tab-button" onclick="switchTab(event, 'partners')">파트너 조합</button>
             <button class="tab-button" onclick="switchTab(event, 'opponents')">상대 전적</button>
             <button class="tab-button" onclick="switchTab(event, 'deep')">심층 분석</button>
             <button class="tab-button" onclick="switchTab(event, 'trend')">트렌드</button>
             <button class="tab-button" onclick="switchTab(event, 'detail')">개인 상세</button>
-            <button class="tab-button" onclick="switchTab(event, 'scheduler')">대진 작성</button>
-            <button class="tab-button" onclick="switchTab(event, 'todaymatchup')">Today's Match-up</button>
-            <button class="tab-button" onclick="switchTab(event, 'recorder')">경기 기록</button>
             <button class="tab-button" onclick="switchTab(event, 'members')">회원 관리</button>
         </div>
 
@@ -1394,7 +1609,7 @@
         </div>
 
         <!-- Tab 1: 회원 요약 -->
-        <div id="summary" class="tab-content active">
+        <div id="summary" class="tab-content">
             <div class="card">
                 <h2 style="margin-bottom: 15px;">회원 통계</h2>
                 <div style="overflow-x: auto;">
@@ -1696,60 +1911,74 @@
                 </div>
             </div>
 
-            <!-- Player Selection -->
-            <div class="card" style="padding:16px 20px; margin-bottom:16px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h2 style="margin:0;">참석자 선택</h2>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <select id="sch-type-filter" onchange="renderSchPlayerList()" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:20px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;">
-                            <option value="all">전체</option>
-                            <option value="회원">회원만</option>
-                            <option value="비회원">비회원만</option>
-                            <option value="게스트">게스트만</option>
-                        </select>
-                        <button onclick="schSelectAll(true)" class="period-btn">전체 선택</button>
-                        <button onclick="schSelectAll(false)" class="period-btn">전체 해제</button>
-                        <span style="width:1px;height:20px;background:var(--border-secondary);margin:0 2px;"></span>
-                        <button onclick="saveSchPreset()" class="period-btn" style="color:var(--accent-text);">💾 저장</button>
-                        <button onclick="document.getElementById('sch-preset-file').click()" class="period-btn" style="color:var(--win-color);">📂 불러오기</button>
-                        <input type="file" id="sch-preset-file" accept=".json" style="display:none;" onchange="loadSchPreset(this)">
+            <!-- 워크스페이스: 오늘 참석자 -->
+            <div class="card" style="padding:16px 18px; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+                    <h2 style="margin:0; font-size:16px;">오늘 참석자</h2>
+                    <span id="sch-selected-count" style="padding:2px 10px; background:rgba(76,175,80,0.15); color:var(--accent-text); border-radius:10px; font-size:12px; font-weight:700;"></span>
+                    <div style="flex:1;"></div>
+                    <button onclick="saveSchPreset()" class="period-btn" style="color:var(--accent-text); font-size:12px;">💾 저장</button>
+                    <button onclick="document.getElementById('sch-preset-file').click()" class="period-btn" style="font-size:12px;">📂 불러오기</button>
+                    <input type="file" id="sch-preset-file" accept=".json" style="display:none;" onchange="loadSchPreset(this)">
+                </div>
+
+                <!-- 빠른 검색 추가 -->
+                <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                    <div style="position:relative; flex:1; min-width:160px;">
+                        <input type="text" id="sch-search-input" oninput="schQuickSearch(this.value)" onkeydown="schQuickSearchKeydown(event)"
+                            placeholder="이름으로 추가..."
+                            style="width:100%; background:var(--input-bg); color:var(--input-color); border:1px solid var(--border-secondary); border-radius:10px; padding:8px 14px 8px 34px; font-size:13px; font-family:inherit;"
+                            autocomplete="off">
+                        <span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:13px; pointer-events:none;">🔍</span>
+                        <div id="ws-dropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--bg-tertiary); border:1px solid var(--border-secondary); border-radius:8px; z-index:100; box-shadow:0 8px 24px rgba(0,0,0,0.4); overflow:hidden;"></div>
                     </div>
+                    <button onclick="toggleGuestDrawer()" class="period-btn" style="font-size:12px;">+ 게스트</button>
                 </div>
-                <div style="margin-bottom:12px;">
-                    <input type="text" id="sch-search-input" oninput="renderSchPlayerList()" placeholder="이름 검색..." style="width:100%;background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:10px;padding:9px 14px;font-size:13px;font-family:inherit;box-sizing:border-box;">
-                </div>
-                <div id="sch-player-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:8px;"></div>
-                <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border-primary);">
-                    <h3 style="color:var(--accent-text); font-size:14px; margin-bottom:12px;">게스트 추가</h3>
+
+                <!-- 게스트 추가 드로어 -->
+                <div id="sch-guest-drawer" style="display:none; background:var(--bg-tertiary); border:1px solid var(--border-secondary); border-radius:10px; padding:12px 14px; margin-bottom:10px;">
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
                         <div class="form-group" style="margin:0;">
                             <label>이름</label>
-                            <input type="text" id="sch-guest-name" placeholder="이름" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;width:100px;">
+                            <input type="text" id="sch-guest-name" placeholder="이름" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;width:100px;">
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label>성별</label>
-                            <select id="sch-guest-gender" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;">
-                                <option value="남">남</option>
-                                <option value="여">여</option>
+                            <select id="sch-guest-gender" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;">
+                                <option value="남">남</option><option value="여">여</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label>레벨</label>
-                            <select id="sch-guest-level" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;">
+                            <select id="sch-guest-level" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;">
                                 <option value="3">3</option><option value="4">4</option><option value="5">5</option>
                                 <option value="6" selected>6</option><option value="7">7</option><option value="8">8</option>
                             </select>
                         </div>
-                        <button onclick="addSchGuest()" class="submit-btn" style="padding:8px 16px;">추가</button>
+                        <button onclick="addSchGuest()" class="submit-btn" style="padding:7px 16px; font-size:13px;">추가</button>
                     </div>
                 </div>
-                <!-- 이전 대진 반영 옵션 -->
-                <div style="margin-top:16px; padding:14px; background:var(--bg-tertiary); border-radius:12px; border:1px solid var(--border-subtle);">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-primary);">
+
+                <!-- 참석자 칩 그리드 -->
+                <div id="sch-workspace-chips" style="display:flex; flex-wrap:wrap; gap:8px; min-height:44px; padding:4px 0;"></div>
+
+                <!-- 액션 바 -->
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border-primary); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div id="sch-count-info" style="flex:1; font-size:13px; color:var(--text-secondary);"></div>
+                    <span style="font-size:12px; color:var(--text-muted);">이전 대진:</span>
+                    <select id="sch-load-date" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;cursor:pointer;"><option value="">-- 날짜 선택 --</option></select>
+                    <button onclick="loadScheduleByDate(document.getElementById('sch-load-date').value)" class="period-btn" style="font-size:12px;">📂</button>
+                    <button onclick="toggleSchOptions()" class="period-btn" id="sch-opt-toggle" style="font-size:12px;">⚙ 옵션</button>
+                    <button id="sch-gen-btn" onclick="generateSchedule()" class="submit-btn" style="padding:10px 28px; font-size:14px;">🎾 대진 생성</button>
+                </div>
+
+                <!-- 대진 옵션 드로어 -->
+                <div id="sch-options-drawer" style="display:none; margin-top:10px; padding:12px 14px; background:var(--bg-tertiary); border-radius:10px; border:1px solid var(--border-subtle);">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:8px;">
                         <input type="checkbox" id="sch-use-history" onchange="toggleHistoryOptions()" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
                         이전 대진 결과 반영
                     </label>
-                    <div id="sch-history-options" style="display:none; margin-top:10px; padding-left:24px; display:none;">
+                    <div id="sch-history-options" style="display:none; padding-left:24px;">
                         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);margin-bottom:6px;cursor:pointer;">
                             <input type="checkbox" id="sch-hist-partner" checked style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;">
                             파트너/상대 중복 회피 <span style="color:var(--text-dimmed);">— 이전에 자주 같이 뛴 조합 피하기</span>
@@ -1765,14 +1994,32 @@
                         <div id="sch-history-info" style="margin-top:8px; font-size:11px; color:var(--text-dimmed);"></div>
                     </div>
                 </div>
-                <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <span id="sch-selected-count" style="color:var(--text-muted); font-size:13px;"></span>
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <span style="font-size:12px; color:var(--text-muted);">이전 대진 불러오기:</span>
-                        <select id="sch-load-date" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:6px 10px;font-size:13px;font-family:inherit;cursor:pointer;"><option value="">-- 날짜 선택 --</option></select>
-                        <button onclick="loadScheduleByDate(document.getElementById('sch-load-date').value)" class="period-btn">📂 불러오기</button>
-                        <button onclick="generateSchedule()" class="submit-btn" style="padding:12px 32px; font-size:15px;">🎾 대진 생성</button>
+            </div>
+
+            <!-- 라이브러리: 전체 회원 -->
+            <div class="card" style="padding:14px 18px; margin-bottom:14px;">
+                <div id="sch-library-header" onclick="toggleSchLibrary()"
+                    style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:14px; font-weight:700; color:var(--text-secondary);">📚 전체 회원 라이브러리</span>
+                        <span style="font-size:11px; color:var(--text-dimmed);">펼쳐서 참석자 추가</span>
                     </div>
+                    <span id="lib-toggle-icon" style="color:var(--text-muted); font-size:14px; transition:transform 0.25s;">▾</span>
+                </div>
+                <div id="sch-library-body" style="display:none; margin-top:12px;">
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+                        <select id="sch-type-filter" onchange="renderSchLibrary()" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:20px;padding:6px 12px;font-size:12px;font-family:inherit;cursor:pointer;">
+                            <option value="all">전체</option>
+                            <option value="회원">회원만</option>
+                            <option value="비회원">비회원만</option>
+                            <option value="게스트">게스트만</option>
+                        </select>
+                        <input type="text" id="sch-lib-search" oninput="renderSchLibrary()" placeholder="이름 검색..."
+                            style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:6px 12px;font-size:12px;font-family:inherit;width:130px;">
+                        <button onclick="schSelectAll(true)" class="period-btn" style="font-size:12px;">전체 추가</button>
+                        <button onclick="schSelectAll(false)" class="period-btn" style="font-size:12px;">전체 해제</button>
+                    </div>
+                    <div id="sch-player-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:8px;"></div>
                 </div>
             </div>
 
@@ -1802,7 +2049,7 @@
         </div>
 
         <!-- Tab: Today's Match-up -->
-        <div id="todaymatchup" class="tab-content">
+        <div id="todaymatchup" class="tab-content active">
             <!-- 헤더 바 -->
             <div class="tmu-header-bar">
                 <div class="tmu-header-top">
