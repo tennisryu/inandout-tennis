@@ -6304,6 +6304,58 @@ function _initUI() {
     initMemberManager();
     const info = document.getElementById('member-mode-info');
     if (info) info.textContent = `회원 ${data.members.filter(m => m.type === '회원').length}명`;
+    _initSwipeGesture();
+}
+
+function _initSwipeGesture() {
+    // 탭 버튼 순서대로 tabId 배열 추출
+    const TAB_ORDER = [...document.querySelectorAll('.tab-button')]
+        .map(btn => {
+            const m = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
+            return m ? m[1] : null;
+        })
+        .filter(Boolean);
+
+    let startX = 0, startY = 0, startTime = 0, onTabContent = false;
+
+    document.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        startTime = Date.now();
+        // 탭 컨텐츠 영역에서 시작한 터치만 처리 (탭바·입력창 제외)
+        onTabContent = !!e.target.closest('.tab-content');
+    }, { passive: true });
+
+    document.addEventListener('touchend', e => {
+        if (!onTabContent) return;
+
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        const dt = Date.now() - startTime;
+
+        // 수평 스와이프 조건: 거리 60px 이상, 수평이 수직의 1.8배 이상, 500ms 이내
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8 || dt > 500) return;
+
+        // 현재 활성 탭 찾기
+        const activeTab = document.querySelector('.tab-content.active');
+        if (!activeTab) return;
+        const currentId = activeTab.id;
+
+        // 현재 사용자에게 보이는 탭만 필터
+        const visibleTabs = TAB_ORDER.filter(id => isAdmin || !adminTabs.includes(id));
+        const idx = visibleTabs.indexOf(currentId);
+        if (idx === -1) return;
+
+        const nextIdx = dx < 0 ? idx + 1 : idx - 1; // 왼쪽 스와이프 → 다음
+        if (nextIdx < 0 || nextIdx >= visibleTabs.length) return;
+
+        switchTab(null, visibleTabs[nextIdx], true);
+
+        // 탭 버튼도 스크롤해서 보이게
+        const nextBtn = document.querySelector(`.tab-button[onclick*="'${visibleTabs[nextIdx]}'"]`);
+        if (nextBtn) nextBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }, { passive: true });
 }
 
 async function _initFromDB() {
