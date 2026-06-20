@@ -1,3 +1,11 @@
+// 로컬 시간 기준 YYYY-MM-DD (toISOString은 UTC라 한국 자정~9시에 날짜 어긋남)
+function _localDateStr(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 // ── 로딩 오버레이 & 토스트 헬퍼 ──
 let _toastTimer = null;
 
@@ -2193,7 +2201,7 @@ async function saveScheduleManually() {
     status.style.color = 'var(--text-muted)';
     status.textContent = '';
 
-    const date = currentSchedule.date || new Date().toISOString().split('T')[0];
+    const date = currentSchedule.date || _localDateStr();
     try {
         const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`, {
             method: 'POST',
@@ -2226,7 +2234,7 @@ async function saveScheduleManually() {
 
 async function _saveScheduleToServer() {
     if (!currentSchedule) return;
-    const date = currentSchedule.date || new Date().toISOString().split('T')[0];
+    const date = currentSchedule.date || _localDateStr();
     try {
         const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`, {
             method: 'POST',
@@ -3470,7 +3478,7 @@ const SCHEDULE_SERVER_URL = (window.location.hostname === 'localhost' || window.
 
 async function generateSchedule() {
     const players = getSchSelectedPlayers();
-    const date = document.getElementById('sch-date').value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('sch-date').value || _localDateStr();
     if (players.length < 4) { alert('최소 4명이 필요합니다.'); return; }
 
     // Python 서버가 켜져 있으면 서버 알고리즘 사용, 아니면 JS 폴백
@@ -4185,7 +4193,7 @@ function sendScheduleToRecorder() {
 }
 
 function initScheduler() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = _localDateStr();
     const dateEl = document.getElementById('sch-date');
     if (dateEl) dateEl.value = today;
 
@@ -4218,7 +4226,7 @@ function saveSchPreset() {
     const blob = new Blob([json], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const dateStr = preset.date || new Date().toISOString().split('T')[0];
+    const dateStr = preset.date || _localDateStr();
     a.href = url; a.download = `참석자설정_${dateStr}.json`; a.click();
     URL.revokeObjectURL(url);
 }
@@ -4588,7 +4596,7 @@ function deleteRecord(idx) {
 
 function downloadMatchData(format) {
     if (data.matches.length === 0) { alert('저장할 경기 기록이 없습니다.'); return; }
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = _localDateStr();
 
     if (format === 'json') {
         const json = JSON.stringify(data.matches, null, 2);
@@ -4748,7 +4756,7 @@ function _mergeImportedMatches(imported, fileName) {
 }
 
 function initRecorder() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = _localDateStr();
     document.getElementById('rec-date').value = today;
     renderRecordHistory();
 }
@@ -4761,21 +4769,21 @@ function initRecorder() {
 const _tmuSavedMap = {};
 
 function initTodayMatchup() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = _localDateStr();
     const inp = document.getElementById('tmu-date-input');
     if (inp) inp.value = today;
     tmuRefreshSchedule(today);
 }
 
 function tmuChangeDate(date) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = _localDateStr();
     const todayBtn = document.getElementById('tmu-today-btn');
     if (todayBtn) todayBtn.style.display = date !== today ? 'inline-block' : 'none';
     tmuRefreshSchedule(date);
 }
 
 function tmuGoToday() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = _localDateStr();
     const inp = document.getElementById('tmu-date-input');
     if (inp) inp.value = today;
     document.getElementById('tmu-today-btn').style.display = 'none';
@@ -4783,7 +4791,7 @@ function tmuGoToday() {
 }
 
 async function tmuRefreshSchedule(targetDate) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = _localDateStr();
     const date = targetDate || document.getElementById('tmu-date-input')?.value || today;
     const isToday = date === today;
 
