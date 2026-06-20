@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Today's Match-up — 모업</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary:    #0b1a10;
+      --bg-secondary:  #112118;
+      --bg-tertiary:   #162a1e;
+      --bg-hover:      #1d3526;
+      --text-primary:  #e0eed6;
+      --text-secondary:#b8cfb0;
+      --text-muted:    #7a9a70;
+      --text-dimmed:   #5a7a50;
+      --accent:        #4caf50;
+      --accent-light:  #81c784;
+      --accent-dark:   #2e7d32;
+      --accent-text:   #66bb6a;
+      --btn-text:      #0b1a10;
+      --border-primary:#1e3a24;
+      --border-secondary:#2a4a30;
+      --input-bg:      #162a1e;
+      --input-color:   #e0eed6;
+      --win-color:     #4caf50;
+      --loss-color:    #f87171;
+      --trend-up-bg:   rgba(16,185,129,0.15);
+      --trend-up-color:#34d399;
+
+      /* 코트 유형 */
+      --court-mixed:   #a855f7;
+      --court-male:    #3b82f6;
+      --court-female:  #ec4899;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      /* 모바일 시뮬레이션: 실제 앱은 full-width */
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── 상단 헤더 ── */
+    .tmu-header {
+      background: linear-gradient(135deg, #14301a, #1a3a22);
+      border-bottom: 1px solid var(--border-primary);
+      padding: 16px 16px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .tmu-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .tmu-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #f0e050;
+      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+    .tmu-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .tmu-status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      background: var(--trend-up-bg);
+      color: var(--trend-up-color);
+      border: 1px solid rgba(52,211,153,0.3);
+    }
+    .tmu-header-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .tmu-btn-sm {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-secondary);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .tmu-btn-sm:active { opacity: 0.7; }
+
+    /* ── 진행률 바 ── */
+    .tmu-progress-bar {
+      margin-top: 10px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      height: 5px;
+      overflow: hidden;
+    }
+    .tmu-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent-dark), var(--accent-light));
+      transition: width 0.5s ease;
+    }
+    .tmu-progress-label {
+      font-size: 11px;
+      color: var(--text-dimmed);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    /* ── 컨테이너 ── */
+    .tmu-body {
+      padding: 12px 12px 80px;
+    }
+
+    /* ── 라운드 블록 ── */
+    .tmu-round {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 14px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .tmu-round-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .tmu-round-header:active { background: var(--bg-hover); }
+    .tmu-round-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tmu-round-badge {
+      background: rgba(76,175,80,0.2);
+      color: var(--accent-text);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .tmu-round-time {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .tmu-round-courts-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+    .tmu-round-toggle {
+      font-size: 16px;
+      color: var(--text-muted);
+      transition: transform 0.25s;
+    }
+    .tmu-round.collapsed .tmu-round-toggle { transform: rotate(-90deg); }
+    .tmu-round-body { padding: 0 10px 10px; }
+    .tmu-round.collapsed .tmu-round-body { display: none; }
+
+    /* ── 저장 진행 미니바 (라운드별) ── */
+    .tmu-round-progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 6px;
+    }
+    .tmu-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-secondary);
+    }
+    .tmu-dot.saved { background: var(--win-color); border-color: var(--win-color); }
+
+    /* ── 코트 카드 ── */
+    .tmu-court-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 12px;
+      padding: 14px 12px 12px;
+      margin-bottom: 8px;
+      position: relative;
+      transition: box-shadow 0.2s;
+    }
+    .tmu-court-card.tmu-saved {
+      border-left: 4px solid var(--win-color);
+    }
+    .tmu-court-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .tmu-court-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tmu-court-num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .tmu-court-type {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+    .tmu-court-type.mixed { background: rgba(168,85,247,0.2); color: #c084fc; }
+    .tmu-court-type.male  { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .tmu-court-type.female{ background: rgba(236,72,153,0.2); color: #f472b6; }
+
+    .tmu-saved-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 10px;
+      background: var(--trend-up-bg);
+      color: var(--trend-up-color);
+    }
+
+    /* ── 스코어 입력 영역 ── */
+    .tmu-match-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+    .tmu-team {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .tmu-team.right { align-items: flex-end; }
+    .tmu-player {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .tmu-player span.gender-m {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #3b82f6;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .tmu-player span.gender-f {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ec4899;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .tmu-score-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .tmu-score-inputs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tmu-score-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .tmu-score-input {
+      width: 56px; height: 52px;
+      font-size: 28px; font-weight: 800;
+      text-align: center;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      border: 1.5px solid var(--border-secondary);
+      border-radius: 10px;
+      font-family: inherit;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .tmu-score-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(76,175,80,0.2);
+    }
+    /* 숫자 스피너 숨기기 */
+    .tmu-score-input::-webkit-inner-spin-button,
+    .tmu-score-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .tmu-score-btns {
+      display: flex;
+      gap: 4px;
+    }
+    .tmu-score-btn {
+      width: 44px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border-secondary);
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      font-size: 18px; font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none;
+    }
+    .tmu-score-btn:active { background: var(--accent-dark); color: white; }
+    .tmu-vs {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* ── 저장 버튼 ── */
+    .tmu-save-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: var(--btn-text);
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      touch-action: manipulation;
+      letter-spacing: 0.5px;
+    }
+    .tmu-save-btn:active { opacity: 0.85; }
+
+    /* ── 저장됨 뷰 (스코어 결과) ── */
+    .tmu-saved-result {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 8px 0 4px;
+    }
+    .tmu-saved-score {
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .tmu-saved-score.win  { color: var(--win-color); }
+    .tmu-saved-score.loss { color: var(--loss-color); }
+    .tmu-saved-score-sep {
+      font-size: 20px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .tmu-edit-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 9px;
+      border: 1px solid var(--border-secondary);
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .tmu-edit-btn:active { background: var(--bg-hover); }
+
+    /* ── 대기 선수 ── */
+    .tmu-waiting {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-top: 6px;
+      background: rgba(251,191,36,0.07);
+      border: 1px solid rgba(251,191,36,0.25);
+      border-radius: 10px;
+    }
+    .tmu-waiting-label {
+      font-size: 12px;
+      color: #fbbf24;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .tmu-waiting-chip {
+      padding: 4px 12px;
+      background: rgba(251,191,36,0.12);
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fde68a;
+    }
+    /* 라운드 헤더 대기 뱃지 */
+    .tmu-waiting-header-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(251,191,36,0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,0.25);
+      white-space: nowrap;
+    }
+
+    /* ── 저장된 경기 요약 (하단) ── */
+    .tmu-saved-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 14px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .tmu-saved-section-header {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tmu-saved-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-text);
+    }
+    .tmu-saved-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 2px 10px;
+      border-radius: 10px;
+    }
+    .tmu-saved-game {
+      padding: 10px 14px;
+      border-top: 1px solid var(--border-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .tmu-saved-game-teams {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .tmu-saved-game-a { color: var(--text-primary); font-weight: 600; }
+    .tmu-saved-game-b { color: var(--text-secondary); font-size: 12px; }
+    .tmu-saved-game-score {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    /* ── 빈 상태 ── */
+    .tmu-empty {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 14px;
+      padding: 40px 20px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .tmu-empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .tmu-empty-text { color: var(--text-muted); font-size: 15px; margin-bottom: 16px; }
+    .tmu-go-scheduler-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: var(--btn-text);
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ────────── 상단 헤더 ────────── -->
+<div class="tmu-header">
+  <div class="tmu-header-top">
+    <div>
+      <div class="tmu-title">Today's Match-up</div>
+      <div class="tmu-subtitle">2026년 6월 20일 (토) · 인앤아웃 테니스</div>
+    </div>
+    <span class="tmu-status-badge">✅ 대진 있음</span>
+  </div>
+  <div class="tmu-header-actions">
+    <button class="tmu-btn-sm">↻ 새로고침</button>
+    <button class="tmu-btn-sm">📋 대진 작성으로</button>
+  </div>
+  <div class="tmu-progress-bar" style="margin-top:10px;">
+    <div class="tmu-progress-fill" style="width: 33%;"></div>
+  </div>
+  <div class="tmu-progress-label">저장됨 2 / 6경기</div>
+</div>
+
+<div class="tmu-body">
+
+<!-- ────────── 제 1경기 (펼쳐진 상태) ────────── -->
+<div class="tmu-round" id="round-0">
+  <div class="tmu-round-header" onclick="toggleRound(0)">
+    <div class="tmu-round-header-left">
+      <span class="tmu-round-badge">제 1경기</span>
+      <span class="tmu-round-time">17:00 ~ 17:30</span>
+      <span class="tmu-round-courts-count">2면</span>
+      <div class="tmu-round-progress">
+        <div class="tmu-dot saved" title="코트1 저장됨"></div>
+        <div class="tmu-dot saved" title="코트2 저장됨"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="tmu-waiting-header-badge">⏸ 김영종</span>
+      <span class="tmu-round-toggle">▾</span>
+    </div>
+  </div>
+
+  <div class="tmu-round-body">
+
+    <!-- 코트1 — 저장 완료 상태 -->
+    <div class="tmu-court-card tmu-saved" id="court-0-0">
+      <div class="tmu-court-card-header">
+        <div class="tmu-court-label">
+          <span class="tmu-court-num">코트 1</span>
+          <span class="tmu-court-type mixed">혼복</span>
+        </div>
+        <span class="tmu-saved-badge">✅ 저장됨</span>
+      </div>
+      <div class="tmu-match-row">
+        <div class="tmu-team">
+          <div class="tmu-player"><span class="gender-m"></span>류선호</div>
+          <div class="tmu-player"><span class="gender-f"></span>배세나</div>
+        </div>
+        <div class="tmu-score-section">
+          <div class="tmu-saved-result">
+            <span class="tmu-saved-score win">6</span>
+            <span class="tmu-saved-score-sep">:</span>
+            <span class="tmu-saved-score loss">4</span>
+          </div>
+        </div>
+        <div class="tmu-team right">
+          <div class="tmu-player">김진태<span class="gender-m" style="margin-left:4px;margin-right:0;"></span></div>
+          <div class="tmu-player">안영주<span class="gender-f" style="margin-left:4px;margin-right:0;"></span></div>
+        </div>
+      </div>
+      <button class="tmu-edit-btn" onclick="editCourt(0,0)">✏️ 수정하기</button>
+    </div>
+
+    <!-- 코트2 — 저장 완료 상태 -->
+    <div class="tmu-court-card tmu-saved" id="court-0-1">
+      <div class="tmu-court-card-header">
+        <div class="tmu-court-label">
+          <span class="tmu-court-num">코트 2</span>
+          <span class="tmu-court-type male">남복</span>
+        </div>
+        <span class="tmu-saved-badge">✅ 저장됨</span>
+      </div>
+      <div class="tmu-match-row">
+        <div class="tmu-team">
+          <div class="tmu-player"><span class="gender-m"></span>김경태</div>
+          <div class="tmu-player"><span class="gender-m"></span>이광희</div>
+        </div>
+        <div class="tmu-score-section">
+          <div class="tmu-saved-result">
+            <span class="tmu-saved-score win">6</span>
+            <span class="tmu-saved-score-sep">:</span>
+            <span class="tmu-saved-score loss">3</span>
+          </div>
+        </div>
+        <div class="tmu-team right">
+          <div class="tmu-player">이준<span class="gender-m" style="margin-left:4px;margin-right:0;"></span></div>
+          <div class="tmu-player">송찬균<span class="gender-m" style="margin-left:4px;margin-right:0;"></span></div>
+        </div>
+      </div>
+      <button class="tmu-edit-btn">✏️ 수정하기</button>
+    </div>
+
+    <!-- 대기 선수 -->
+    <div class="tmu-waiting">
+      <span class="tmu-waiting-label">⏸ 대기</span>
+      <span class="tmu-waiting-chip">김영종</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ────────── 제 2경기 (미입력 상태) ────────── -->
+<div class="tmu-round" id="round-1">
+  <div class="tmu-round-header" onclick="toggleRound(1)">
+    <div class="tmu-round-header-left">
+      <span class="tmu-round-badge">제 2경기</span>
+      <span class="tmu-round-time">17:30 ~ 18:00</span>
+      <span class="tmu-round-courts-count">2면</span>
+      <div class="tmu-round-progress">
+        <div class="tmu-dot" title="코트1 미저장"></div>
+        <div class="tmu-dot" title="코트2 미저장"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="tmu-waiting-header-badge">⏸ 이광희 · 송찬균</span>
+      <span class="tmu-round-toggle">▾</span>
+    </div>
+  </div>
+
+  <div class="tmu-round-body">
+
+    <!-- 코트1 — 스코어 입력 상태 -->
+    <div class="tmu-court-card" id="court-1-0">
+      <div class="tmu-court-card-header">
+        <div class="tmu-court-label">
+          <span class="tmu-court-num">코트 1</span>
+          <span class="tmu-court-type mixed">혼복</span>
+        </div>
+      </div>
+      <div class="tmu-match-row">
+        <div class="tmu-team">
+          <div class="tmu-player"><span class="gender-m"></span>김영종</div>
+          <div class="tmu-player"><span class="gender-f"></span>김지우</div>
+        </div>
+
+        <div class="tmu-score-section">
+          <div class="tmu-score-inputs">
+            <div class="tmu-score-box">
+              <input type="number" class="tmu-score-input" id="ls-1-0"
+                     value="0" min="0" max="9"
+                     inputmode="numeric" pattern="[0-9]*">
+              <div class="tmu-score-btns">
+                <button class="tmu-score-btn" onclick="changeScore('ls-1-0', -1)">−</button>
+                <button class="tmu-score-btn" onclick="changeScore('ls-1-0', +1)">+</button>
+              </div>
+            </div>
+            <span class="tmu-vs">vs</span>
+            <div class="tmu-score-box">
+              <input type="number" class="tmu-score-input" id="rs-1-0"
+                     value="0" min="0" max="9"
+                     inputmode="numeric" pattern="[0-9]*">
+              <div class="tmu-score-btns">
+                <button class="tmu-score-btn" onclick="changeScore('rs-1-0', -1)">−</button>
+                <button class="tmu-score-btn" onclick="changeScore('rs-1-0', +1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tmu-team right">
+          <div class="tmu-player">박용우<span class="gender-m" style="margin-left:4px;margin-right:0;"></span></div>
+          <div class="tmu-player">최수진<span class="gender-f" style="margin-left:4px;margin-right:0;"></span></div>
+        </div>
+      </div>
+      <button class="tmu-save-btn" onclick="saveScore(1, 0)">💾 이 경기 저장</button>
+    </div>
+
+    <!-- 코트2 — 스코어 입력 상태 -->
+    <div class="tmu-court-card" id="court-1-1">
+      <div class="tmu-court-card-header">
+        <div class="tmu-court-label">
+          <span class="tmu-court-num">코트 2</span>
+          <span class="tmu-court-type female">여복</span>
+        </div>
+      </div>
+      <div class="tmu-match-row">
+        <div class="tmu-team">
+          <div class="tmu-player"><span class="gender-f"></span>안영주</div>
+          <div class="tmu-player"><span class="gender-f"></span>배세나</div>
+        </div>
+
+        <div class="tmu-score-section">
+          <div class="tmu-score-inputs">
+            <div class="tmu-score-box">
+              <input type="number" class="tmu-score-input" id="ls-1-1"
+                     value="0" min="0" max="9"
+                     inputmode="numeric" pattern="[0-9]*">
+              <div class="tmu-score-btns">
+                <button class="tmu-score-btn" onclick="changeScore('ls-1-1', -1)">−</button>
+                <button class="tmu-score-btn" onclick="changeScore('ls-1-1', +1)">+</button>
+              </div>
+            </div>
+            <span class="tmu-vs">vs</span>
+            <div class="tmu-score-box">
+              <input type="number" class="tmu-score-input" id="rs-1-1"
+                     value="0" min="0" max="9"
+                     inputmode="numeric" pattern="[0-9]*">
+              <div class="tmu-score-btns">
+                <button class="tmu-score-btn" onclick="changeScore('rs-1-1', -1)">−</button>
+                <button class="tmu-score-btn" onclick="changeScore('rs-1-1', +1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tmu-team right">
+          <div class="tmu-player">이수연<span class="gender-f" style="margin-left:4px;margin-right:0;"></span></div>
+          <div class="tmu-player">정하린<span class="gender-f" style="margin-left:4px;margin-right:0;"></span></div>
+        </div>
+      </div>
+      <button class="tmu-save-btn" onclick="saveScore(1, 1)">💾 이 경기 저장</button>
+    </div>
+
+    <!-- 대기 선수 -->
+    <div class="tmu-waiting">
+      <span class="tmu-waiting-label">⏸ 대기</span>
+      <span class="tmu-waiting-chip">이광희</span>
+      <span class="tmu-waiting-chip">송찬균</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ────────── 제 3경기 (접힌 상태) ────────── -->
+<div class="tmu-round collapsed" id="round-2">
+  <div class="tmu-round-header" onclick="toggleRound(2)">
+    <div class="tmu-round-header-left">
+      <span class="tmu-round-badge">제 3경기</span>
+      <span class="tmu-round-time">18:00 ~ 18:30</span>
+      <span class="tmu-round-courts-count">2면</span>
+      <div class="tmu-round-progress">
+        <div class="tmu-dot"></div>
+        <div class="tmu-dot"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="tmu-waiting-header-badge">⏸ 박용우</span>
+      <span class="tmu-round-toggle">▾</span>
+    </div>
+  </div>
+  <div class="tmu-round-body">
+    <div class="tmu-court-card">
+      <div class="tmu-court-card-header">
+        <div class="tmu-court-label">
+          <span class="tmu-court-num">코트 1</span>
+          <span class="tmu-court-type male">남복</span>
+        </div>
+      </div>
+      <div class="tmu-match-row">
+        <div class="tmu-team">
+          <div class="tmu-player"><span class="gender-m"></span>류선호</div>
+          <div class="tmu-player"><span class="gender-m"></span>이준</div>
+        </div>
+        <div class="tmu-score-section">
+          <div class="tmu-score-inputs">
+            <div class="tmu-score-box">
+              <input type="number" class="tmu-score-input" id="ls-2-0" value="0" min="0" max="9" inputmode="numeric">
+              <div class="tmu-score-btns">
+                <button class="tmu-score-btn" onclick="changeScore('ls-2-0',-1)">−</button>
+                <button class="tmu-score-btn" onclick="changeScore('ls-2-0',+1)">+</button>
+              </div>
+            </div>
+            <span class="tmu-vs">vs</span>
+            <div class="tmu-score-box">
+              <input type="number" class="tmu-score-input" id="rs-2-0" value="0" min="0" max="9" inputmode="numeric">
+              <div class="tmu-score-btns">
+                <button class="tmu-score-btn" onclick="changeScore('rs-2-0',-1)">−</button>
+                <button class="tmu-score-btn" onclick="changeScore('rs-2-0',+1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tmu-team right">
+          <div class="tmu-player">김진태<span class="gender-m" style="margin-left:4px;margin-right:0;"></span></div>
+          <div class="tmu-player">김경태<span class="gender-m" style="margin-left:4px;margin-right:0;"></span></div>
+        </div>
+      </div>
+      <button class="tmu-save-btn">💾 이 경기 저장</button>
+    </div>
+    <div class="tmu-waiting">
+      <span class="tmu-waiting-label">⏸ 대기</span>
+      <span class="tmu-waiting-chip">박용우</span>
+    </div>
+  </div>
+</div>
+
+<!-- ────────── 오늘 저장된 경기 기록 ────────── -->
+<div class="tmu-saved-section">
+  <div class="tmu-saved-section-header">
+    <span class="tmu-saved-section-title">오늘 저장된 경기 기록</span>
+    <span class="tmu-saved-count">2경기</span>
+  </div>
+  <div class="tmu-saved-game">
+    <div class="tmu-saved-game-teams">
+      <div class="tmu-saved-game-a">류선호 · 배세나</div>
+      <div class="tmu-saved-game-b">vs 김진태 · 안영주</div>
+    </div>
+    <div class="tmu-saved-game-score">6 : 4</div>
+  </div>
+  <div class="tmu-saved-game">
+    <div class="tmu-saved-game-teams">
+      <div class="tmu-saved-game-a">김경태 · 이광희</div>
+      <div class="tmu-saved-game-b">vs 이준 · 송찬균</div>
+    </div>
+    <div class="tmu-saved-game-score">6 : 3</div>
+  </div>
+</div>
+
+</div><!-- /tmu-body -->
+
+<script>
+  function toggleRound(idx) {
+    const el = document.getElementById(`round-${idx}`);
+    el.classList.toggle('collapsed');
+  }
+
+  function changeScore(inputId, delta) {
+    const el = document.getElementById(inputId);
+    let val = parseInt(el.value) + delta;
+    if (val < 0) val = 0;
+    if (val > 9) val = 9;
+    el.value = val;
+  }
+
+  function saveScore(ri, ci) {
+    const lsEl = document.getElementById(`ls-${ri}-${ci}`);
+    const rsEl = document.getElementById(`rs-${ri}-${ci}`);
+    const ls = parseInt(lsEl?.value ?? 0);
+    const rs = parseInt(rsEl?.value ?? 0);
+
+    const card = document.getElementById(`court-${ri}-${ci}`);
+
+    // 헤더에 저장됨 배지 추가
+    const header = card.querySelector('.tmu-court-card-header');
+    if (!header.querySelector('.tmu-saved-badge')) {
+      header.insertAdjacentHTML('beforeend', `<span class="tmu-saved-badge">✅ 저장됨</span>`);
+    }
+    card.classList.add('tmu-saved');
+
+    // 스코어 영역을 결과 표시로 교체
+    const section = card.querySelector('.tmu-score-section');
+    const winClass = ls >= rs ? 'win' : 'loss';
+    const lossClass = ls >= rs ? 'loss' : 'win';
+    section.innerHTML = `
+      <div class="tmu-saved-result">
+        <span class="tmu-saved-score ${winClass}">${ls}</span>
+        <span class="tmu-saved-score-sep">:</span>
+        <span class="tmu-saved-score ${lossClass}">${rs}</span>
+      </div>`;
+
+    // 저장 버튼 → 수정 버튼
+    const saveBtn = card.querySelector('.tmu-save-btn');
+    if (saveBtn) {
+      saveBtn.outerHTML = `<button class="tmu-edit-btn" onclick="editCourt(${ri},${ci})">✏️ 수정하기</button>`;
+    }
+
+    // 라운드 점 업데이트
+    const dots = document.querySelectorAll(`#round-${ri} .tmu-round-progress .tmu-dot`);
+    if (dots[ci]) dots[ci].classList.add('saved');
+
+    // 하단 저장 목록에 추가 (시뮬레이션)
+    console.log(`저장됨: 제${ri+1}경기 코트${ci+1} - ${ls}:${rs}`);
+  }
+
+  function editCourt(ri, ci) {
+    alert(`(실제 앱에서는 코트 ${ci+1} 스코어를 수정할 수 있습니다)`);
+  }
+</script>
+</body>
+</html>

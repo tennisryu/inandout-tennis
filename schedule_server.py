@@ -1061,6 +1061,16 @@ async def index():
     return FileResponse(Path(__file__).parent / "인앤아웃_분석앱.html")
 
 
+@app.get("/data.js")
+async def data_js():
+    return FileResponse(Path(__file__).parent / "data.js", media_type="application/javascript")
+
+
+@app.get("/app.js")
+async def app_js():
+    return FileResponse(Path(__file__).parent / "app.js", media_type="application/javascript")
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 5050))
