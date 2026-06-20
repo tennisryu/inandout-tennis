@@ -2060,6 +2060,10 @@
                     <span id="tmu-status-badge"></span>
                 </div>
                 <div class="tmu-header-actions">
+                    <input type="date" id="tmu-date-input"
+                        onchange="tmuChangeDate(this.value)"
+                        style="background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-secondary); border-radius:8px; padding:5px 10px; font-size:13px; font-family:inherit; cursor:pointer;">
+                    <button class="period-btn" id="tmu-today-btn" onclick="tmuGoToday()" style="display:none;">오늘</button>
                     <button class="period-btn" onclick="tmuRefreshSchedule()">↻ 새로고침</button>
                     <button class="period-btn" onclick="tmuGoToScheduler()">📋 대진 작성으로</button>
                 </div>
@@ -2076,7 +2080,7 @@
 
             <!-- 대진 없음 -->
             <div id="tmu-empty" class="tmu-empty-card" style="display:none;">
-                <p style="color:var(--text-muted); font-size:15px; margin-bottom:16px;">오늘 날짜의 대진표가 없습니다.</p>
+                <p id="tmu-empty-msg" style="color:var(--text-muted); font-size:15px; margin-bottom:16px;">해당 날짜의 대진표가 없습니다.</p>
                 <button class="submit-btn" onclick="tmuGoToScheduler()" style="padding:11px 28px;">대진 작성하러 가기</button>
             </div>
 

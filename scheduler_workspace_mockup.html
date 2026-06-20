@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대진 작성 — 워크스페이스 모업</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg-primary:    #0b1a10;
+  --bg-secondary:  #112118;
+  --bg-tertiary:   #162a1e;
+  --bg-hover:      #1d3526;
+  --text-primary:  #e0eed6;
+  --text-secondary:#b8cfb0;
+  --text-muted:    #7a9a70;
+  --text-dimmed:   #5a7a50;
+  --accent:        #4caf50;
+  --accent-light:  #81c784;
+  --accent-dark:   #2e7d32;
+  --accent-text:   #66bb6a;
+  --btn-text:      #0b1a10;
+  --border-primary:#1e3a24;
+  --border-secondary:#2a4a30;
+  --input-bg:      #162a1e;
+  --win-color:     #4caf50;
+  --gender-m-bg:   rgba(59,130,246,0.15);
+  --gender-m-color:#60a5fa;
+  --gender-f-bg:   rgba(236,72,153,0.15);
+  --gender-f-color:#f472b6;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+
+.page-title {
+  font-size: 20px; font-weight: 800;
+  color: var(--accent-text);
+  border-left: 3px solid rgba(76,175,80,0.7);
+  padding-left: 10px;
+  margin-bottom: 16px;
+}
+
+/* ── 카드 ── */
+.card {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  border-top: 2px solid rgba(45,138,78,0.4);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+/* ── ① 날짜/시간 설정 바 ── */
+.settings-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.settings-bar input[type="date"],
+.settings-bar select {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.settings-bar .sep {
+  width: 1px; height: 28px;
+  background: var(--border-primary);
+}
+
+/* 시간대 미니 칩들 */
+.timeslot-chips {
+  display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+}
+.timeslot-chip {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex; align-items: center; gap: 5px;
+}
+.timeslot-chip .courts-badge {
+  font-weight: 700;
+  color: var(--accent-text);
+}
+.timeslot-chip .remove-slot {
+  cursor: pointer; color: var(--text-dimmed); font-size: 14px; line-height:1;
+}
+.btn-sm {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+.btn-sm:hover { background: var(--bg-hover); }
+.btn-sm.accent {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: var(--btn-text);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+/* ── ② 워크스페이스 ── */
+.ws-section-label {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ws-section-label .count-badge {
+  padding: 2px 9px;
+  background: rgba(76,175,80,0.15);
+  color: var(--accent-text);
+  border-radius: 10px;
+  font-size: 11px; font-weight: 700;
+}
+
+/* 빠른 추가 검색 */
+.ws-search-row {
+  display: flex; gap: 8px; align-items: center;
+  margin-bottom: 12px; flex-wrap: wrap;
+}
+.ws-search-wrap {
+  position: relative; flex: 1; min-width: 180px;
+}
+.ws-search-input {
+  width: 100%;
+  padding: 8px 14px 8px 34px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px; font-family: inherit;
+}
+.ws-search-input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(76,175,80,0.15);
+}
+.ws-search-icon {
+  position: absolute; left: 10px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted); font-size: 14px;
+}
+.ws-search-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.ws-search-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-primary);
+}
+.ws-search-item:last-child { border-bottom: none; }
+.ws-search-item:hover { background: var(--bg-hover); }
+.ws-search-item .already { color: var(--text-dimmed); font-size: 11px; }
+
+/* 게스트 추가 드로어 */
+.guest-drawer {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: none;
+}
+.guest-drawer.open { display: block; }
+.guest-drawer-row {
+  display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;
+}
+.guest-drawer .form-group { margin: 0; }
+.guest-drawer label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.guest-drawer input, .guest-drawer select {
+  padding: 7px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-secondary);
+  border-radius: 7px;
+  color: var(--text-primary);
+  font-size: 13px; font-family: inherit;
+}
+.guest-drawer .name-input { width: 120px; }
+.guest-drawer .gender-select { width: 70px; }
+.guest-drawer .level-select { width: 70px; }
+.guest-add-btn {
+  padding: 7px 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: var(--btn-text);
+  border: none; border-radius: 7px;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer;
+}
+
+/* 참석자 칩 그리드 */
+.ws-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  min-height: 48px;
+  padding: 4px 0;
+}
+.ws-empty-hint {
+  color: var(--text-dimmed);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+/* 참석자 칩 */
+.ws-chip {
+  display: inline-flex; flex-direction: column;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  user-select: none;
+}
+.ws-chip:hover { border-color: var(--accent); }
+.ws-chip.expanded { border-color: var(--accent); }
+
+.ws-chip-top {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 10px 6px;
+}
+.ws-chip-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.ws-chip-gender {
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 6px;
+}
+.ws-chip-gender.m { background: var(--gender-m-bg); color: var(--gender-m-color); }
+.ws-chip-gender.f { background: var(--gender-f-bg); color: var(--gender-f-color); }
+.ws-chip-level {
+  font-size: 11px; font-weight: 700;
+  color: #fbbf24;
+  background: rgba(251,191,36,0.12);
+  padding: 1px 6px; border-radius: 6px;
+  border: 1px solid rgba(251,191,36,0.25);
+}
+.ws-chip-remove {
+  margin-left: 2px;
+  color: var(--text-dimmed); font-size: 15px; line-height: 1;
+  padding: 0 2px;
+}
+.ws-chip-remove:hover { color: #f87171; }
+
+/* 칩 확장 패널 */
+.ws-chip-panel {
+  border-top: 1px solid var(--border-primary);
+  padding: 8px 10px 10px;
+  display: none;
+}
+.ws-chip.expanded .ws-chip-panel { display: block; }
+.ws-chip-panel-row {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px; flex-wrap: wrap;
+}
+.ws-chip-panel-label {
+  font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  width: 60px; flex-shrink: 0;
+}
+.slot-checkbox-wrap {
+  display: flex; gap: 4px;
+}
+.slot-cb-label {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 22px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-secondary);
+  border-radius: 5px;
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  cursor: pointer;
+}
+.slot-cb-label.checked {
+  background: rgba(76,175,80,0.2);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.ws-chip-panel select {
+  padding: 3px 6px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px; font-family: inherit;
+}
+
+/* ── 하단 액션 바 ── */
+.ws-action-bar {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-primary);
+}
+.ws-count-info {
+  font-size: 13px; color: var(--text-secondary);
+  flex: 1;
+}
+.ws-count-info strong { color: var(--accent-text); }
+.ws-option-toggle {
+  padding: 7px 14px;
+  border: 1px solid var(--border-secondary);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+.ws-option-toggle.open {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.btn-generate {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: var(--btn-text);
+  border: none; border-radius: 9px;
+  font-size: 14px; font-weight: 800;
+  cursor: pointer; letter-spacing: 0.5px;
+}
+.btn-generate:hover { opacity: 0.92; transform: translateY(-1px); }
+
+/* 대진 옵션 드로어 */
+.option-drawer {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  display: none;
+}
+.option-drawer.open { display: block; }
+.option-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 13px; color: var(--text-secondary);
+}
+.option-row:last-child { border-bottom: none; }
+.option-row input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+.option-row label { cursor: pointer; }
+
+/* ── ③ 라이브러리 ── */
+.library-header {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+  padding: 4px 0;
+}
+.library-title {
+  font-size: 14px; font-weight: 700; color: var(--text-secondary);
+  display: flex; align-items: center; gap: 8px;
+}
+.library-toggle-icon { color: var(--text-muted); transition: transform 0.25s; }
+.library-header.open .library-toggle-icon { transform: rotate(180deg); }
+.library-body { display: none; margin-top: 12px; }
+.library-header.open + .library-body { display: block; }
+
+.library-controls {
+  display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; margin-bottom: 10px;
+}
+.library-controls select,
+.library-controls input {
+  padding: 6px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-secondary);
+  border-radius: 7px;
+  color: var(--text-primary);
+  font-size: 12px; font-family: inherit;
+}
+.library-controls input { flex: 1; min-width: 120px; }
+
+/* 라이브러리 그리드 */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.lib-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.lib-card.attending {
+  border-color: rgba(76,175,80,0.5);
+  background: rgba(76,175,80,0.06);
+}
+.lib-card-info { flex: 1; min-width: 0; }
+.lib-card-name {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lib-card-meta {
+  font-size: 11px; color: var(--text-muted); margin-top: 2px;
+  display: flex; align-items: center; gap: 4px;
+}
+.lib-card-meta .gm { color: var(--gender-m-color); }
+.lib-card-meta .gf { color: var(--gender-f-color); }
+.lib-add-btn {
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 11px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  flex-shrink: 0;
+}
+.lib-add-btn:hover { border-color: var(--accent); color: var(--accent-text); }
+.lib-card.attending .lib-add-btn {
+  background: rgba(76,175,80,0.15);
+  border-color: rgba(76,175,80,0.4);
+  color: var(--accent-text);
+  cursor: default;
+}
+.lib-guest-del {
+  color: var(--text-dimmed); font-size: 14px; cursor: pointer; margin-left: 2px;
+}
+.lib-guest-del:hover { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="page-title">대진 작성</div>
+
+  <!-- ① 날짜/시간 설정 바 -->
+  <div class="card">
+    <div class="settings-bar">
+      <input type="date" value="2026-06-20">
+      <select>
+        <option>30분</option><option>25분</option><option>20분</option><option>40분</option>
+      </select>
+      <div class="sep"></div>
+      <div class="timeslot-chips" id="timeslot-chips">
+        <!-- JS로 렌더링 -->
+      </div>
+      <button class="btn-sm" onclick="addSlot()">+ 시간대</button>
+      <div class="sep"></div>
+      <button class="btn-sm" onclick="openPreset()">📂 불러오기</button>
+      <button class="btn-sm" onclick="savePreset()">💾 저장</button>
+    </div>
+  </div>
+
+  <!-- ② 오늘 참석자 워크스페이스 -->
+  <div class="card">
+    <div class="ws-section-label">
+      오늘 참석자
+      <span class="count-badge" id="ws-count-badge">0명</span>
+    </div>
+
+    <!-- 빠른 추가 검색 -->
+    <div class="ws-search-row">
+      <div class="ws-search-wrap">
+        <span class="ws-search-icon">🔍</span>
+        <input class="ws-search-input" id="ws-search" placeholder="이름으로 추가..."
+               oninput="onWsSearch(this.value)" autocomplete="off">
+        <div class="ws-search-dropdown" id="ws-dropdown" style="display:none;"></div>
+      </div>
+      <button class="btn-sm" id="guest-toggle-btn" onclick="toggleGuestDrawer()">+ 게스트 추가</button>
+    </div>
+
+    <!-- 게스트 추가 드로어 -->
+    <div class="guest-drawer" id="guest-drawer">
+      <div class="guest-drawer-row">
+        <div class="form-group">
+          <label>이름</label>
+          <input class="name-input" id="guest-name" placeholder="홍길동" type="text">
+        </div>
+        <div class="form-group">
+          <label>성별</label>
+          <select class="gender-select" id="guest-gender">
+            <option value="남">남</option>
+            <option value="여">여</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>레벨</label>
+          <select class="level-select" id="guest-level">
+            <option>3</option><option>4</option><option>5</option>
+            <option selected>6</option><option>7</option><option>8</option>
+          </select>
+        </div>
+        <button class="guest-add-btn" onclick="addGuest()">추가</button>
+      </div>
+    </div>
+
+    <!-- 참석자 칩 영역 -->
+    <div class="ws-chips" id="ws-chips">
+      <span class="ws-empty-hint">위 검색창이나 라이브러리에서 참석자를 추가하세요.</span>
+    </div>
+
+    <!-- 하단 액션 바 -->
+    <div class="ws-action-bar">
+      <div class="ws-count-info" id="ws-info">총 <strong>0명</strong></div>
+      <button class="ws-option-toggle" id="opt-toggle" onclick="toggleOptions()">⚙ 대진 옵션</button>
+      <button class="btn-generate">🎾 대진 생성</button>
+    </div>
+
+    <!-- 대진 옵션 드로어 -->
+    <div class="option-drawer" id="option-drawer">
+      <div class="option-row">
+        <input type="checkbox" id="opt-history" checked>
+        <label for="opt-history">이전 대진 반영 (파트너/상대 중복 회피)</label>
+      </div>
+      <div class="option-row">
+        <input type="checkbox" id="opt-matchup">
+        <label for="opt-matchup">상성 반영 (천적·쉬운 상대 회피)</label>
+      </div>
+      <div class="option-row">
+        <input type="checkbox" id="opt-level">
+        <label for="opt-level">승률 기반 레벨 보정</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 전체 회원 라이브러리 -->
+  <div class="card">
+    <div class="library-header" id="lib-header" onclick="toggleLibrary()">
+      <div class="library-title">
+        📚 전체 회원 라이브러리
+        <span style="font-size:11px; color:var(--text-dimmed); font-weight:400;">클릭하면 펼쳐집니다</span>
+      </div>
+      <span class="library-toggle-icon">▾</span>
+    </div>
+    <div class="library-body" id="lib-body">
+      <div class="library-controls">
+        <select id="lib-type-filter" onchange="renderLibrary()">
+          <option value="all">전체</option>
+          <option value="회원">회원</option>
+          <option value="비회원">비회원</option>
+          <option value="게스트">게스트</option>
+        </select>
+        <input placeholder="이름 검색..." id="lib-search" oninput="renderLibrary()">
+        <button class="btn-sm" onclick="libSelectAll(true)">전체 추가</button>
+        <button class="btn-sm" onclick="libSelectAll(false)">전체 해제</button>
+      </div>
+      <div class="library-grid" id="lib-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 샘플 데이터 ──
+const members = [
+  {name:'강수구',gender:'남',level:7,type:'비회원'},
+  {name:'고정호',gender:'남',level:6,type:'비회원'},
+  {name:'김동울',gender:'남',level:6,type:'비회원'},
+  {name:'김봉석',gender:'남',level:6,type:'비회원'},
+  {name:'김아람',gender:'여',level:6,type:'비회원'},
+  {name:'류선호',gender:'남',level:6,type:'비회원'},
+  {name:'배세나',gender:'여',level:5,type:'비회원'},
+  {name:'박진희',gender:'여',level:5,type:'비회원'},
+  {name:'서유진',gender:'여',level:5,type:'비회원'},
+  {name:'이광희',gender:'남',level:6,type:'비회원'},
+  {name:'이준',gender:'남',level:6,type:'비회원'},
+  {name:'안영주',gender:'여',level:6,type:'비회원'},
+  {name:'김진태',gender:'남',level:6,type:'회원'},
+  {name:'김경태',gender:'남',level:6,type:'회원'},
+  {name:'심정보',gender:'남',level:8,type:'비회원'},
+  {name:'이종무',gender:'남',level:7,type:'비회원'},
+];
+members.forEach(m => {
+  m._selected = false;
+  m._availableSlots = [true,true,true,true,true,true];
+  m._maxGames = 0;
+});
+
+// 시간대 데이터
+let timeSlots = [
+  {start:'17:00',end:'17:30',courts:2},
+  {start:'17:30',end:'18:00',courts:2},
+  {start:'18:00',end:'18:30',courts:3},
+  {start:'18:30',end:'19:00',courts:3},
+  {start:'19:00',end:'19:30',courts:2},
+  {start:'19:30',end:'20:00',courts:2},
+];
+
+// ── 시간대 칩 렌더 ──
+function renderTimeSlots() {
+  const el = document.getElementById('timeslot-chips');
+  el.innerHTML = timeSlots.map((s,i) => `
+    <div class="timeslot-chip">
+      <span>${s.start}~${s.end}</span>
+      <span class="courts-badge">${s.courts}면</span>
+      <span class="remove-slot" onclick="removeSlot(${i})" title="삭제">×</span>
+    </div>`).join('');
+}
+function addSlot() {
+  const last = timeSlots[timeSlots.length-1];
+  const [h,m] = last.end.split(':').map(Number);
+  const newStart = last.end;
+  const nm = m + 30 >= 60 ? (m+30-60) : m+30;
+  const nh = m + 30 >= 60 ? h+1 : h;
+  const newEnd = `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
+  timeSlots.push({start:newStart, end:newEnd, courts:2});
+  renderTimeSlots();
+}
+function removeSlot(i) {
+  if (timeSlots.length <= 1) return;
+  timeSlots.splice(i,1);
+  renderTimeSlots();
+  renderWorkspace(); // 슬롯 수 변경 시 칩 패널도 업데이트
+}
+function openPreset() { alert('(실제 앱: 저장된 참석자 설정 불러오기)'); }
+function savePreset() { alert('(실제 앱: 현재 참석자 설정 저장)'); }
+
+// ── 워크스페이스 ──
+let expandedChip = null;
+
+function renderWorkspace() {
+  const selected = members.filter(m => m._selected);
+  const countBadge = document.getElementById('ws-count-badge');
+  const info = document.getElementById('ws-info');
+  const chips = document.getElementById('ws-chips');
+
+  countBadge.textContent = `${selected.length}명`;
+  const rec = selected.length >= 4 ? Math.round(selected.length / 4.5) : 0;
+  info.innerHTML = `총 <strong>${selected.length}명</strong>${rec > 0 ? ` · 추천 <strong>${rec}면</strong>` : ''}`;
+
+  if (selected.length === 0) {
+    chips.innerHTML = '<span class="ws-empty-hint">위 검색창이나 라이브러리에서 참석자를 추가하세요.</span>';
+    return;
+  }
+
+  chips.innerHTML = selected.map(m => {
+    const gClass = m.gender === '여' ? 'f' : 'm';
+    const isExpanded = expandedChip === m.name;
+    const levelColor = m.level >= 7 ? '#f87171' : m.level <= 4 ? '#60a5fa' : '#fbbf24';
+
+    // 시간대 슬롯 체크박스
+    const slotChecks = timeSlots.map((s,i) => {
+      const avail = m._availableSlots ? m._availableSlots[i] !== false : true;
+      return `<span class="slot-cb-label ${avail?'checked':''}"
+        onclick="toggleChipSlot('${m.name}',${i},this)">${i+1}</span>`;
+    }).join('');
+
+    return `
+    <div class="ws-chip${isExpanded?' expanded':''}" id="chip-${m.name}">
+      <div class="ws-chip-top" onclick="toggleChip('${m.name}')">
+        <span class="ws-chip-name">${m.name}</span>
+        <span class="ws-chip-gender ${gClass}">${m.gender}</span>
+        <span class="ws-chip-level" style="color:${levelColor}">Lv${m.level}</span>
+        <span class="ws-chip-remove" onclick="event.stopPropagation();removeFromWorkspace('${m.name}')" title="제거">×</span>
+      </div>
+      <div class="ws-chip-panel">
+        <div class="ws-chip-panel-row">
+          <span class="ws-chip-panel-label">시간대</span>
+          <div class="slot-checkbox-wrap">${slotChecks}</div>
+        </div>
+        <div class="ws-chip-panel-row">
+          <span class="ws-chip-panel-label">최대게임</span>
+          <select onchange="changeMaxGames('${m.name}',this.value)">
+            <option value="0"${m._maxGames===0?' selected':''}>무제한</option>
+            ${[2,3,4,5,6].map(n=>`<option value="${n}"${m._maxGames===n?' selected':''}>${n}게임</option>`).join('')}
+          </select>
+          ${m.type!=='회원'?`
+          <span class="ws-chip-panel-label" style="margin-left:6px;">레벨</span>
+          <select onchange="changeLevel('${m.name}',this.value)">
+            ${[3,4,5,6,7,8].map(n=>`<option${m.level===n?' selected':''}>${n}</option>`).join('')}
+          </select>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleChip(name) {
+  expandedChip = expandedChip === name ? null : name;
+  renderWorkspace();
+}
+
+function toggleChipSlot(name, idx, el) {
+  const m = members.find(x=>x.name===name);
+  if (!m) return;
+  if (!m._availableSlots) m._availableSlots = timeSlots.map(()=>true);
+  m._availableSlots[idx] = !m._availableSlots[idx];
+  el.classList.toggle('checked');
+}
+
+function changeMaxGames(name, val) {
+  const m = members.find(x=>x.name===name);
+  if (m) m._maxGames = parseInt(val);
+}
+
+function changeLevel(name, val) {
+  const m = members.find(x=>x.name===name);
+  if (m) { m.level = parseInt(val); renderWorkspace(); renderLibrary(); }
+}
+
+function addToWorkspace(name) {
+  const m = members.find(x=>x.name===name);
+  if (!m || m._selected) return;
+  m._selected = true;
+  renderWorkspace();
+  renderLibrary();
+  // 검색창 초기화
+  document.getElementById('ws-search').value = '';
+  document.getElementById('ws-dropdown').style.display = 'none';
+}
+
+function removeFromWorkspace(name) {
+  const m = members.find(x=>x.name===name);
+  if (!m) return;
+  m._selected = false;
+  if (expandedChip === name) expandedChip = null;
+  renderWorkspace();
+  renderLibrary();
+}
+
+// ── 빠른 검색 ──
+function onWsSearch(query) {
+  const dd = document.getElementById('ws-dropdown');
+  if (!query.trim()) { dd.style.display='none'; return; }
+  const matched = members.filter(m => m.name.includes(query));
+  if (!matched.length) { dd.style.display='none'; return; }
+  dd.innerHTML = matched.map(m => {
+    const attending = m._selected;
+    return `<div class="ws-search-item" onclick="${attending?'':``addToWorkspace('${m.name}')``}">
+      <span>${m.name}</span>
+      <span style="color:${m.gender==='여'?'var(--gender-f-color)':'var(--gender-m-color)'}; font-size:11px;">${m.gender} Lv${m.level}</span>
+      ${attending?'<span class="already">이미 참석 중</span>':''}
+    </div>`;
+  }).join('');
+  dd.style.display = 'block';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ws-search-wrap'))
+    document.getElementById('ws-dropdown').style.display='none';
+});
+
+// ── 게스트 드로어 ──
+function toggleGuestDrawer() {
+  const d = document.getElementById('guest-drawer');
+  d.classList.toggle('open');
+}
+
+function addGuest() {
+  const nameEl = document.getElementById('guest-name');
+  const name = nameEl.value.trim();
+  if (!name) { alert('이름을 입력하세요.'); return; }
+
+  // 중복 체크 — 라이브러리에 이미 있으면 차단
+  if (members.find(m => m.name === name)) {
+    alert(`'${name}'은(는) 이미 회원 목록에 있습니다.\n라이브러리에서 추가하세요.`);
+    nameEl.focus(); return;
+  }
+
+  const gender = document.getElementById('guest-gender').value;
+  const level = parseInt(document.getElementById('guest-level').value);
+
+  // 라이브러리(data.members)에 추가 + 동시에 워크스페이스 선택 상태로
+  members.push({
+    name, gender, level, type:'게스트',
+    _selected: true,                           // ← 워크스페이스에 바로 반영
+    _availableSlots: timeSlots.map(()=>true),
+    _maxGames: 0,
+  });
+
+  nameEl.value = '';
+  document.getElementById('guest-drawer').classList.remove('open');
+  renderWorkspace();
+  renderLibrary(); // 라이브러리에도 즉시 반영
+}
+
+// ── 대진 옵션 드로어 ──
+function toggleOptions() {
+  const d = document.getElementById('option-drawer');
+  const btn = document.getElementById('opt-toggle');
+  d.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+
+// ── 라이브러리 ──
+function toggleLibrary() {
+  const header = document.getElementById('lib-header');
+  header.classList.toggle('open');
+}
+
+function renderLibrary() {
+  const typeFilter = document.getElementById('lib-type-filter').value;
+  const search = document.getElementById('lib-search').value.trim();
+  const grid = document.getElementById('lib-grid');
+
+  let filtered = members.filter(m => {
+    if (typeFilter !== 'all' && m.type !== typeFilter) return false;
+    if (search && !m.name.includes(search)) return false;
+    return true;
+  });
+
+  grid.innerHTML = filtered.map(m => {
+    const attending = m._selected;
+    const gLabel = m.gender === '여'
+      ? `<span class="gf">여</span>` : `<span class="gm">남</span>`;
+    const isGuest = m.type === '게스트';
+
+    return `
+    <div class="lib-card${attending?' attending':''}">
+      <div class="lib-card-info">
+        <div class="lib-card-name">${m.name}</div>
+        <div class="lib-card-meta">
+          ${gLabel} Lv${m.level}
+          <span style="color:var(--text-dimmed)">· ${m.type}</span>
+        </div>
+      </div>
+      <button class="lib-add-btn" onclick="${attending?'':``addToWorkspace('${m.name}')``}"
+              ${attending?'disabled':''}>
+        ${attending ? '참석 중' : '추가'}
+      </button>
+      ${isGuest ? `<span class="lib-guest-del" onclick="deleteGuest('${m.name}')" title="삭제">×</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function libSelectAll(select) {
+  const typeFilter = document.getElementById('lib-type-filter').value;
+  const search = document.getElementById('lib-search').value.trim();
+  members.forEach(m => {
+    if (typeFilter !== 'all' && m.type !== typeFilter) return;
+    if (search && !m.name.includes(search)) return;
+    m._selected = select;
+  });
+  renderWorkspace();
+  renderLibrary();
+}
+
+function deleteGuest(name) {
+  const idx = members.findIndex(m => m.name === name);
+  if (idx < 0) return;
+  members.splice(idx, 1);
+  if (expandedChip === name) expandedChip = null;
+  renderWorkspace();
+  renderLibrary();
+}
+
+// ── 초기화 ──
+renderTimeSlots();
+renderWorkspace();
+</script>
+</body>
+</html>

@@ -28,7 +28,29 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'✅ matches: {len\\(d\\)}경기, id 포함:', \\\\\"id\\\\\" in d[0]\\)\")",
       "Bash(python3 -c \"import json,sys; print\\('✅ schedules:', json.load\\(sys.stdin\\)\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('members:', len\\(d\\)\\)\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('matches:', len\\(d\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('matches:', len\\(d\\)\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(curl -s https://web-production-069bf.up.railway.app/api/members)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'members: {len\\(d\\)}명'\\)\")",
+      "Bash(curl -s https://web-production-069bf.up.railway.app/api/matches)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'matches: {len\\(d\\)}경기'\\)\")",
+      "Bash(curl -sv https://web-production-069bf.up.railway.app/api/members)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'✅ matches: {len\\(d\\)}경기'\\)\")",
+      "Bash(curl -s https://web-production-c17a.up.railway.app/api/members)",
+      "Bash(curl -s https://web-production-c17a.up.railway.app/api/matches)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'✅ Supabase 연결 성공 — members: {len\\(d\\)}명'\\)\")",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(curl -s http://localhost:5050/api/schedules/2026-05-31)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('date:', d.get\\('date'\\)\\); print\\('schedule rounds:', len\\(d.get\\('schedule', []\\)\\)\\)\")",
+      "Bash(curl -sv http://localhost:5050/api/schedules/2026-05-31)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s http://localhost:5050/api/schedules/latest)",
+      "Bash(python3 -)"
     ]
   }
 }

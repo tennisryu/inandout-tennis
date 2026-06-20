@@ -4761,37 +4761,61 @@ function initRecorder() {
 const _tmuSavedMap = {};
 
 function initTodayMatchup() {
-    tmuRefreshSchedule();
+    const today = new Date().toISOString().split('T')[0];
+    const inp = document.getElementById('tmu-date-input');
+    if (inp) inp.value = today;
+    tmuRefreshSchedule(today);
 }
 
-async function tmuRefreshSchedule() {
+function tmuChangeDate(date) {
     const today = new Date().toISOString().split('T')[0];
-    const dateLabel = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+    const todayBtn = document.getElementById('tmu-today-btn');
+    if (todayBtn) todayBtn.style.display = date !== today ? 'inline-block' : 'none';
+    tmuRefreshSchedule(date);
+}
 
-    document.getElementById('tmu-date-label').textContent = dateLabel + ' · 인앤아웃 테니스';
+function tmuGoToday() {
+    const today = new Date().toISOString().split('T')[0];
+    const inp = document.getElementById('tmu-date-input');
+    if (inp) inp.value = today;
+    document.getElementById('tmu-today-btn').style.display = 'none';
+    tmuRefreshSchedule(today);
+}
+
+async function tmuRefreshSchedule(targetDate) {
+    const today = new Date().toISOString().split('T')[0];
+    const date = targetDate || document.getElementById('tmu-date-input')?.value || today;
+    const isToday = date === today;
+
+    const dateObj = new Date(date + 'T00:00:00');
+    const dateLabel = dateObj.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+    document.getElementById('tmu-date-label').textContent = dateLabel + (isToday ? ' · 인앤아웃 테니스' : '');
+
     document.getElementById('tmu-loading').style.display = 'block';
     document.getElementById('tmu-empty').style.display = 'none';
     document.getElementById('tmu-rounds-container').innerHTML = '';
     document.getElementById('tmu-saved-section').style.display = 'none';
     document.getElementById('tmu-status-badge').textContent = '';
 
-    // 이미 오늘 날짜 대진이 로드된 경우 캐시 활용
-    if (window.currentSchedule && window.currentSchedule.date === today) {
+    // 캐시 활용: 같은 날짜 대진이 이미 로드된 경우
+    if (window.currentSchedule && window.currentSchedule.date === date) {
         document.getElementById('tmu-loading').style.display = 'none';
-        _tmuRender(today);
+        _tmuRender(date);
         return;
     }
 
     try {
-        const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${today}`);
+        const resp = await fetch(`${SCHEDULE_SERVER}/api/schedules/${date}`);
         if (!resp.ok) throw new Error('not found');
         const result = await resp.json();
         window.currentSchedule = result;
         document.getElementById('tmu-loading').style.display = 'none';
-        _tmuRender(today);
+        _tmuRender(date);
     } catch (e) {
         document.getElementById('tmu-loading').style.display = 'none';
         document.getElementById('tmu-empty').style.display = 'block';
+        const emptyMsg = document.getElementById('tmu-empty-msg');
+        if (emptyMsg) emptyMsg.textContent = isToday ? '오늘 날짜의 대진표가 없습니다.' : '해당 날짜의 대진표가 없습니다.';
         const badge = document.getElementById('tmu-status-badge');
         badge.textContent = '대진 없음';
         badge.className = 'tmu-status-badge-none';
