@@ -4943,7 +4943,10 @@ function _tmuRenderCourt(court, ri, ci, today) {
                 ${playerHtml(court.b1, true)}${playerHtml(court.b2, true)}
             </div>
         </div>
-        <button class="tmu-edit-btn" onclick="tmuEditCourt(${ri},${ci},'${today}')">✏️ 수정하기</button>`;
+        <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="tmu-edit-btn" onclick="tmuEditCourt(${ri},${ci},'${today}')">✏️ 점수 수정</button>
+            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--wr-mid);border-color:var(--wr-mid);">🔀 대진 변경</button>
+        </div>`;
     } else {
         bodyHtml = `
         <div class="tmu-match-row">
@@ -4975,10 +4978,13 @@ function _tmuRenderCourt(court, ri, ci, today) {
                 ${playerHtml(court.b1, true)}${playerHtml(court.b2, true)}
             </div>
         </div>
-        <button class="tmu-save-btn" id="tmu-savebtn-${ri}-${ci}"
-                onclick="tmuSaveCourtScore(${ri},${ci},'${court.a1}','${court.a2}','${court.b1}','${court.b2}','${today}')">
-            💾 이 경기 저장
-        </button>`;
+        <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="tmu-save-btn" id="tmu-savebtn-${ri}-${ci}"
+                    onclick="tmuSaveCourtScore(${ri},${ci},'${court.a1}','${court.a2}','${court.b1}','${court.b2}','${today}')">
+                💾 이 경기 저장
+            </button>
+            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--wr-mid);border-color:var(--wr-mid);">🔀 대진 변경</button>
+        </div>`;
     }
 
     return `
@@ -5107,6 +5113,131 @@ function tmuEditCourt(ri, ci, date) {
             onclick="tmuSaveCourtScore(${ri},${ci},'${court.a1}','${court.a2}','${court.b1}','${court.b2}','${date}')">
             💾 이 경기 저장
         </button>`;
+}
+
+// 라운드 전체 선수 풀 (코트 + 대기)
+function _tmuRoundPlayerPool(round) {
+    const pool = new Set();
+    (round.courts || []).forEach(c => {
+        if (c.a1) pool.add(c.a1);
+        if (c.a2) pool.add(c.a2);
+        if (c.b1) pool.add(c.b1);
+        if (c.b2) pool.add(c.b2);
+    });
+    (round.waiting || []).forEach(w => pool.add(w));
+    return [...pool];
+}
+
+function tmuEditLineup(ri, ci, date) {
+    const schedule = window.currentSchedule && window.currentSchedule.schedule;
+    if (!schedule) return;
+    const round = schedule[ri];
+    const court = round.courts[ci];
+    const pool = _tmuRoundPlayerPool(round);
+
+    const card = document.getElementById(`tmu-court-${ri}-${ci}`);
+    if (!card) return;
+
+    const makeSelect = (pos, val) => {
+        const opts = pool.map(p => `<option value="${p}"${p === val ? ' selected' : ''}>${p}</option>`).join('');
+        return `<select id="tmu-edit-${ri}-${ci}-${pos}" class="tmu-lineup-select">${opts}</select>`;
+    };
+
+    card.innerHTML = `
+        <div class="tmu-card-header">
+            <span class="tmu-court-label">코트 ${ci + 1}</span>
+            <span style="font-size:12px;color:#aaa;">대진 변경</span>
+        </div>
+        <div class="tmu-lineup-edit-form">
+            <div class="tmu-lineup-team">
+                <span class="tmu-lineup-team-label">A팀</span>
+                ${makeSelect('a1', court.a1)}
+                ${makeSelect('a2', court.a2)}
+            </div>
+            <div class="tmu-lineup-vs">vs</div>
+            <div class="tmu-lineup-team">
+                <span class="tmu-lineup-team-label">B팀</span>
+                ${makeSelect('b1', court.b1)}
+                ${makeSelect('b2', court.b2)}
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="tmu-save-btn" onclick="tmuConfirmLineup(${ri},${ci},'${date}')">✅ 확인</button>
+            <button class="tmu-edit-btn" onclick="tmuCancelLineup(${ri},'${date}')">취소</button>
+        </div>`;
+}
+
+async function tmuConfirmLineup(ri, ci, date) {
+    const schedule = window.currentSchedule && window.currentSchedule.schedule;
+    if (!schedule) return;
+    const round = schedule[ri];
+
+    const get = pos => document.getElementById(`tmu-edit-${ri}-${ci}-${pos}`)?.value;
+    const a1 = get('a1'), a2 = get('a2'), b1 = get('b1'), b2 = get('b2');
+
+    if (!a1 || !a2 || !b1 || !b2) return alert('모든 선수를 선택해주세요.');
+
+    const chosen = [a1, a2, b1, b2];
+    if (new Set(chosen).size < 4) return alert('같은 선수를 중복 선택할 수 없습니다.');
+
+    // 점수 저장된 코트면 경고 후 점수 삭제
+    const key = `R${ri}_C${ci}`;
+    if (_tmuSavedMap[key]) {
+        const ok = confirm('이 코트는 이미 점수가 저장되어 있습니다.\n대진을 변경하면 저장된 점수가 삭제됩니다.\n계속하시겠습니까?');
+        if (!ok) return;
+        delete _tmuSavedMap[key];
+    }
+
+    // 풀은 업데이트 전에 계산 (코트에서 빠진 선수도 포함해야 함)
+    const pool = _tmuRoundPlayerPool(round);
+
+    // 코트 업데이트
+    round.courts[ci] = { a1, a2, b1, b2 };
+
+    // 대기 재계산: 풀 전체 - 이번 라운드 코트에서 뛰는 선수
+    const playing = new Set();
+    (round.courts || []).forEach(c => {
+        if (c.a1) playing.add(c.a1);
+        if (c.a2) playing.add(c.a2);
+        if (c.b1) playing.add(c.b1);
+        if (c.b2) playing.add(c.b2);
+    });
+    round.waiting = pool.filter(p => !playing.has(p));
+
+    // 서버 저장
+    await _tmuSaveScheduleChanges(date);
+
+    // 라운드 재렌더링
+    const roundEl = document.getElementById(`tmu-round-${ri}`);
+    if (roundEl) roundEl.outerHTML = _tmuRenderRound(round, ri, date);
+}
+
+function tmuCancelLineup(ri, date) {
+    const schedule = window.currentSchedule && window.currentSchedule.schedule;
+    if (!schedule) return;
+    const roundEl = document.getElementById(`tmu-round-${ri}`);
+    if (roundEl) roundEl.outerHTML = _tmuRenderRound(schedule[ri], ri, date);
+}
+
+async function _tmuSaveScheduleChanges(date) {
+    const cs = window.currentSchedule;
+    if (!cs) return;
+    try {
+        showToast('저장 중...', 'loading', 0);
+        await fetch(`/api/schedules/${date}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                schedule: cs.schedule,
+                players: cs.players || [],
+                gameCounts: cs.gameCounts || {}
+            })
+        });
+        hideToast();
+    } catch (e) {
+        hideToast();
+        showToast('저장 실패: ' + e.message, 'error', 3000);
+    }
 }
 
 async function _saveOneMatch(matchObj) {

@@ -67,6 +67,15 @@
             --filter-divider: #1e3a24;
             --input-bg: #162a1e;
             --input-color: #e0eed6;
+            --waiting-area-bg: rgba(251,191,36,0.07);
+            --waiting-area-border: rgba(251,191,36,0.22);
+            --waiting-label-color: #fbbf24;
+            --waiting-chip-bg: rgba(251,191,36,0.12);
+            --waiting-chip-border: rgba(251,191,36,0.28);
+            --waiting-chip-color: #fde68a;
+            --waiting-badge-bg: rgba(251,191,36,0.15);
+            --waiting-badge-border: rgba(251,191,36,0.25);
+            --waiting-badge-color: #fbbf24;
         }
 
         [data-theme="light"] {
@@ -118,6 +127,15 @@
             --filter-divider: #c8e6c9;
             --input-bg: #ffffff;
             --input-color: #1b3a1e;
+            --waiting-area-bg: rgba(180,83,9,0.07);
+            --waiting-area-border: rgba(180,83,9,0.25);
+            --waiting-label-color: #92400e;
+            --waiting-chip-bg: rgba(180,83,9,0.1);
+            --waiting-chip-border: rgba(180,83,9,0.3);
+            --waiting-chip-color: #78350f;
+            --waiting-badge-bg: rgba(180,83,9,0.1);
+            --waiting-badge-border: rgba(180,83,9,0.25);
+            --waiting-badge-color: #92400e;
         }
 
         [data-theme="clay"] {
@@ -169,6 +187,15 @@
             --filter-divider: #2a3a1e;
             --input-bg: #2a3018;
             --input-color: #e0e8d4;
+            --waiting-area-bg: rgba(251,191,36,0.07);
+            --waiting-area-border: rgba(251,191,36,0.22);
+            --waiting-label-color: #fbbf24;
+            --waiting-chip-bg: rgba(251,191,36,0.12);
+            --waiting-chip-border: rgba(251,191,36,0.28);
+            --waiting-chip-color: #fde68a;
+            --waiting-badge-bg: rgba(251,191,36,0.15);
+            --waiting-badge-border: rgba(251,191,36,0.25);
+            --waiting-badge-color: #fbbf24;
         }
 
         body {
@@ -1201,9 +1228,9 @@
             font-weight: 700;
             padding: 2px 8px;
             border-radius: 10px;
-            background: rgba(251,191,36,0.15);
-            color: #fbbf24;
-            border: 1px solid rgba(251,191,36,0.25);
+            background: var(--waiting-badge-bg);
+            color: var(--waiting-badge-color);
+            border: 1px solid var(--waiting-badge-border);
             white-space: nowrap;
         }
         .tmu-round-toggle {
@@ -1392,6 +1419,42 @@
             touch-action: manipulation;
         }
         .tmu-edit-btn:active { background: var(--bg-hover); }
+        .tmu-lineup-edit-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .tmu-lineup-team {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+        .tmu-lineup-team-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .tmu-lineup-select {
+            width: 100%;
+            padding: 7px 6px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .tmu-lineup-vs {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding-top: 16px;
+        }
         .tmu-waiting {
             display: flex;
             align-items: center;
@@ -1399,24 +1462,24 @@
             gap: 7px;
             padding: 9px 10px;
             margin-top: 4px;
-            background: rgba(251,191,36,0.07);
-            border: 1px solid rgba(251,191,36,0.22);
+            background: var(--waiting-area-bg);
+            border: 1px solid var(--waiting-area-border);
             border-radius: 9px;
         }
         .tmu-waiting-label {
             font-size: 11px;
-            color: #fbbf24;
+            color: var(--waiting-label-color);
             font-weight: 700;
             white-space: nowrap;
         }
         .tmu-waiting-chip {
             padding: 3px 10px;
-            background: rgba(251,191,36,0.12);
-            border: 1px solid rgba(251,191,36,0.28);
+            background: var(--waiting-chip-bg);
+            border: 1px solid var(--waiting-chip-border);
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
-            color: #fde68a;
+            color: var(--waiting-chip-color);
         }
         .tmu-saved-section {
             background: var(--bg-secondary);

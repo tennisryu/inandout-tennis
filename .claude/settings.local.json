@@ -50,7 +50,8 @@
       "Bash(curl -sv http://localhost:5050/api/schedules/2026-05-31)",
       "Bash(python3 -c ' *)",
       "Bash(curl -s http://localhost:5050/api/schedules/latest)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(brew list *)"
     ]
   }
 }
