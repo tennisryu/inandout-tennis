@@ -353,7 +353,7 @@
 
         /* 비활성 패널은 숨김 → 활성 탭 높이에 맞게 페이지 높이 결정 */
         .tab-content {
-            min-width: 100vw;
+            min-width: 100%;
             flex-shrink: 0;
             display: none;
         }
@@ -1767,8 +1767,8 @@
             <button class="tab-button" onclick="switchTab(event, 'members')">회원 관리</button>
         </div>
 
-        <!-- Filters -->
-        <div class="card" style="padding: 16px 20px; margin-bottom: 16px;">
+        <!-- Filters (분석 탭에서만 표시, 기본 숨김) -->
+        <div id="filter-card" class="card" style="padding: 16px 20px; margin-bottom: 16px; display:none;">
             <!-- Row 1: Member toggle + Period filter -->
             <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
                 <span style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-right: 2px;">분석 대상</span>

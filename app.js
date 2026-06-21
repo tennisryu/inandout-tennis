@@ -1467,6 +1467,9 @@ function _setTrackPosition(tabId, animated = false) {
     track.style.transform = 'translateX(0)';
 }
 
+// 기간 필터가 필요한 분석 탭
+const analysisTabs = new Set(['summary','mvp','deep','partners','opponents','trend','detail']);
+
 function switchTab(event, tabName, _force) {
     if (!_force && !isAdmin && adminTabs.includes(tabName)) return;
     document.querySelectorAll('.tab-content').forEach(el => {
@@ -1487,6 +1490,9 @@ function switchTab(event, tabName, _force) {
     // 트랙 위치 리셋 (active 패널만 남아 위치 0)
     const track = document.getElementById('tab-track');
     if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(0)'; }
+    // 분석 탭에서만 기간 필터 표시
+    const filterCard = document.getElementById('filter-card');
+    if (filterCard) filterCard.style.display = analysisTabs.has(tabName) ? '' : 'none';
     _updateTabIndicator(tabName, true);
     if (tabName === 'todaymatchup') tmuRefreshSchedule();
 }
@@ -6427,6 +6433,10 @@ function _initSwipeGesture() {
         track.style.transform = 'translateX(0)';
     }
 
+    function getW() {
+        return document.getElementById('tab-track-wrap')?.offsetWidth || window.innerWidth;
+    }
+
     document.addEventListener('touchstart', e => {
         if (!e.target.closest('.tab-content')) return;
         startX = e.touches[0].clientX;
@@ -6472,7 +6482,7 @@ function _initSwipeGesture() {
                     // flex: [prev(0) | active(W)]  → 시작 위치를 -W로 보정
                     swipeDir = 'prev';
                     revealNeighbor('prev', ids[curIdx - 1], activeEl);
-                    baseTranslate = -window.innerWidth;
+                    baseTranslate = -getW();
                     // 현재 손가락 위치까지 따라잡기 (점프 없음)
                     setTrackX(baseTranslate + dx);
                     return;
@@ -6482,7 +6492,7 @@ function _initSwipeGesture() {
 
         if (!horizontal) return;
 
-        const W = window.innerWidth;
+        const W = getW();
         const ids = _getVisibleTabIds();
         const atStart = curIdx === 0 && dx > 0;
         const atEnd   = curIdx === ids.length - 1 && dx < 0;
@@ -6502,7 +6512,7 @@ function _initSwipeGesture() {
         locked = false;
 
         const dx = e.changedTouches[0].clientX - startX;
-        const W = window.innerWidth;
+        const W = getW();
         const ids = _getVisibleTabIds();
 
         const vel = velHistory.length >= 2
