@@ -351,9 +351,15 @@
             align-items: flex-start;
         }
 
+        /* 비활성 패널은 숨김 → 활성 탭 높이에 맞게 페이지 높이 결정 */
         .tab-content {
-            min-width: 100%;
+            min-width: 100vw;
             flex-shrink: 0;
+            display: none;
+        }
+
+        .tab-content.active,
+        .tab-content.tab-swiping {
             display: block;
         }
 

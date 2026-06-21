@@ -1445,28 +1445,34 @@ function showAttendanceDetail(name, month) {
     detail.innerHTML = html;
 }
 
+// 탭 버튼 순서 기준으로 가시 탭 ID 반환 (DOM 순서 아님)
 function _getVisibleTabIds() {
-    return [...document.querySelectorAll('.tab-content')]
-        .filter(el => !el.classList.contains('tab-hidden'))
-        .map(el => el.id)
-        .filter(Boolean);
+    return [...document.querySelectorAll('.tab-button')]
+        .map(btn => {
+            const m = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
+            return m ? m[1] : null;
+        })
+        .filter(id => {
+            if (!id) return false;
+            const el = document.getElementById(id);
+            return el && !el.classList.contains('tab-hidden');
+        });
 }
 
 function _setTrackPosition(tabId, animated = false) {
+    // 비활성 패널은 display:none이라 항상 translate 0으로 리셋
     const track = document.getElementById('tab-track');
     if (!track) return;
-    const ids = _getVisibleTabIds();
-    const idx = ids.indexOf(tabId);
-    if (idx === -1) return;
-    track.style.transition = animated
-        ? 'transform 0.3s cubic-bezier(0.4,0,0.2,1)'
-        : 'none';
-    track.style.transform = `translateX(${-idx * 100}%)`;
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0)';
 }
 
 function switchTab(event, tabName, _force) {
     if (!_force && !isAdmin && adminTabs.includes(tabName)) return;
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.remove('active');
+        el.classList.remove('tab-swiping');
+    });
     document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
     const target = document.getElementById(tabName);
     if (target) target.classList.add('active');
@@ -1478,7 +1484,9 @@ function switchTab(event, tabName, _force) {
             if (oc.includes("'" + tabName + "'")) btn.classList.add('active');
         });
     }
-    _setTrackPosition(tabName, true);
+    // 트랙 위치 리셋 (active 패널만 남아 위치 0)
+    const track = document.getElementById('tab-track');
+    if (track) { track.style.transition = 'none'; track.style.transform = 'translateX(0)'; }
     _updateTabIndicator(tabName, true);
     if (tabName === 'todaymatchup') tmuRefreshSchedule();
 }
@@ -6357,16 +6365,13 @@ function _initUI() {
     initMemberManager();
     const info = document.getElementById('member-mode-info');
     if (info) info.textContent = `회원 ${data.members.filter(m => m.type === '회원').length}명`;
-    // 초기 트랙 + 인디케이터 위치 (DOM 렌더 후)
+    // 초기 인디케이터 위치 (DOM 렌더 후)
     requestAnimationFrame(() => {
         const activeBtn = document.querySelector('.tab-button.active');
         if (activeBtn) {
             const oc = activeBtn.getAttribute('onclick') || '';
             const m = oc.match(/'([^']+)'/);
-            if (m) {
-                _setTrackPosition(m[1], false);
-                _updateTabIndicator(m[1], false);
-            }
+            if (m) _updateTabIndicator(m[1], false);
         }
     });
     _initSwipeGesture();
@@ -6378,35 +6383,62 @@ function _initSwipeGesture() {
 
     let startX = 0, startY = 0;
     let touching = false, locked = false, horizontal = false;
-    let curIdx = -1, baseTranslate = 0;
-    let velHistory = []; // 속도 계산용
-
-    function getVisibleIds() { return _getVisibleTabIds(); }
-
-    function getCurrentIdx() {
-        const ids = getVisibleIds();
-        const active = document.querySelector('.tab-content.active');
-        return active ? ids.indexOf(active.id) : 0;
-    }
+    let curIdx = -1;
+    let baseTranslate = 0; // 드래그 시작 시 트랙의 translateX 값
+    let swipeDir = null;   // 'next' | 'prev' | null
+    let neighborId = null; // 현재 표시 중인 인접 패널 ID
+    let velHistory = [];
 
     function setTrackX(x, transition = 'none') {
         track.style.transition = transition;
         track.style.transform = `translateX(${x}px)`;
     }
 
-    // 더미 함수들 제거됨
+    // 인접 패널을 올바른 DOM 위치에 삽입 후 표시
+    function revealNeighbor(dir, nId, activeEl) {
+        const nEl = document.getElementById(nId);
+        if (!nEl) return;
+        if (dir === 'next') {
+            // next: active 뒤에 삽입 → flex 순서: [active | next]
+            if (activeEl.nextSibling !== nEl) track.insertBefore(nEl, activeEl.nextSibling);
+        } else {
+            // prev: active 앞에 삽입 → flex 순서: [prev | active]
+            if (activeEl.previousSibling !== nEl) track.insertBefore(nEl, activeEl);
+        }
+        nEl.classList.add('tab-swiping');
+        neighborId = nId;
+    }
+
+    // 인접 패널 제거 (delay 후)
+    function clearNeighbor(delay = 0) {
+        const id = neighborId;
+        if (!id) return;
+        neighborId = null;
+        const remove = () => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('tab-swiping');
+        };
+        delay > 0 ? setTimeout(remove, delay) : remove();
+    }
+
+    // 트랙을 translateX(0)으로 리셋 (active만 남은 상태)
+    function resetTrack() {
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(0)';
+    }
 
     document.addEventListener('touchstart', e => {
         if (!e.target.closest('.tab-content')) return;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         touching = true; locked = false; horizontal = false;
+        swipeDir = null; neighborId = null;
         velHistory = [{ x: startX, t: Date.now() }];
 
-        // 현재 트랙 위치를 baseTranslate로 기록
-        curIdx = getCurrentIdx();
-        const W = window.innerWidth;
-        baseTranslate = -curIdx * W;
+        const ids = _getVisibleTabIds();
+        const active = document.querySelector('.tab-content.active');
+        curIdx = active ? ids.indexOf(active.id) : 0;
+        baseTranslate = 0; // active만 있으므로 항상 0에서 시작
         track.style.transition = 'none';
     }, { passive: true });
 
@@ -6417,7 +6449,6 @@ function _initSwipeGesture() {
         const dx = cx - startX;
         const dy = cy - startY;
 
-        // 속도 기록 (최근 100ms)
         const now = Date.now();
         velHistory.push({ x: cx, t: now });
         velHistory = velHistory.filter(p => now - p.t < 100);
@@ -6426,80 +6457,121 @@ function _initSwipeGesture() {
             if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
             horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
             locked = true;
+
+            if (horizontal) {
+                // 방향 확정 시 인접 패널 준비
+                const ids = _getVisibleTabIds();
+                const activeEl = document.querySelector('.tab-content.active');
+                if (dx < 0 && curIdx < ids.length - 1) {
+                    // 왼쪽 스와이프 → next 패널을 active 뒤에 배치
+                    // flex: [active(0) | next(W)]  baseTranslate=0 유지
+                    swipeDir = 'next';
+                    revealNeighbor('next', ids[curIdx + 1], activeEl);
+                } else if (dx > 0 && curIdx > 0) {
+                    // 오른쪽 스와이프 → prev 패널을 active 앞에 배치
+                    // flex: [prev(0) | active(W)]  → 시작 위치를 -W로 보정
+                    swipeDir = 'prev';
+                    revealNeighbor('prev', ids[curIdx - 1], activeEl);
+                    baseTranslate = -window.innerWidth;
+                    // 현재 손가락 위치까지 따라잡기 (점프 없음)
+                    setTrackX(baseTranslate + dx);
+                    return;
+                }
+            }
         }
 
         if (!horizontal) return;
 
         const W = window.innerWidth;
-        const ids = getVisibleIds();
-        // 경계 저항: 첫/마지막 탭에서 당기면 절반 속도
+        const ids = _getVisibleTabIds();
         const atStart = curIdx === 0 && dx > 0;
         const atEnd   = curIdx === ids.length - 1 && dx < 0;
         const resistance = (atStart || atEnd) ? 0.3 : 1;
-        const x = baseTranslate + dx * resistance;
-
-        setTrackX(x);
+        setTrackX(baseTranslate + dx * resistance);
 
         // 인디케이터 실시간 동기화
         const ratio = Math.min(Math.abs(dx) / W, 1);
-        const neighborId = dx < 0 ? ids[curIdx + 1] : ids[curIdx - 1];
-        if (neighborId) _interpolateTabIndicator(ids[curIdx], neighborId, ratio);
+        const nId = dx < 0 ? ids[curIdx + 1] : ids[curIdx - 1];
+        if (nId) _interpolateTabIndicator(ids[curIdx], nId, ratio);
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
         if (!touching) return;
         touching = false;
-        if (!horizontal) return;
+        if (!horizontal) { swipeDir = null; return; }
         locked = false;
 
         const dx = e.changedTouches[0].clientX - startX;
         const W = window.innerWidth;
-        const ids = getVisibleIds();
+        const ids = _getVisibleTabIds();
 
-        // 속도 계산 (px/ms)
         const vel = velHistory.length >= 2
             ? (velHistory[velHistory.length - 1].x - velHistory[0].x) /
               (velHistory[velHistory.length - 1].t - velHistory[0].t)
             : 0;
 
-        // 전환 조건: 거리(35%) OR 빠른 플릭(0.3px/ms)
-        const goNext = (dx < -(W * 0.35) || vel < -0.3) && curIdx < ids.length - 1;
-        const goPrev = (dx > W * 0.35  || vel > 0.3)  && curIdx > 0;
+        const goNext = swipeDir === 'next' && (dx < -(W * 0.35) || vel < -0.3);
+        const goPrev = swipeDir === 'prev' && (dx > W * 0.35  || vel > 0.3);
 
         const slide  = 'transform 0.28s cubic-bezier(0.4,0,0.2,1)';
         const spring = 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1)';
+        const indSlide = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)';
+        const indSpring = 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1), width 0.38s cubic-bezier(0.34,1.56,0.64,1)';
 
         if (goNext) {
-            const newIdx = curIdx + 1;
-            const newId  = ids[newIdx];
-            setTrackX(-newIdx * W, slide);
+            // next 패널로 전환: flex [active(0) | next(W)] → translate -W
+            setTrackX(-W, slide);
             const ind = document.getElementById('tab-indicator');
-            if (ind) ind.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)';
-            _updateTabIndicator(newId, false);
-            setTimeout(() => switchTab(null, newId, true), 30);
+            if (ind) ind.style.transition = indSlide;
+            _updateTabIndicator(ids[curIdx + 1], false);
+            const newId = ids[curIdx + 1];
+            neighborId = null;
+            setTimeout(() => {
+                switchTab(null, newId, true); // active 변경 + tab-swiping 제거
+                resetTrack();                  // translate 0 리셋
+            }, 290);
 
         } else if (goPrev) {
-            const newIdx = curIdx - 1;
-            const newId  = ids[newIdx];
-            setTrackX(-newIdx * W, slide);
+            // prev 패널로 전환: flex [prev(0) | active(W)] → translate 0
+            setTrackX(0, slide);
             const ind = document.getElementById('tab-indicator');
-            if (ind) ind.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)';
-            _updateTabIndicator(newId, false);
-            setTimeout(() => switchTab(null, newId, true), 30);
+            if (ind) ind.style.transition = indSlide;
+            _updateTabIndicator(ids[curIdx - 1], false);
+            const newId = ids[curIdx - 1];
+            neighborId = null;
+            setTimeout(() => {
+                switchTab(null, newId, true);
+                resetTrack();
+            }, 290);
 
         } else {
             // 스프링 복귀
             setTrackX(baseTranslate, spring);
             const ind = document.getElementById('tab-indicator');
-            if (ind) ind.style.transition = 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1), width 0.38s cubic-bezier(0.34,1.56,0.64,1)';
+            if (ind) ind.style.transition = indSpring;
             _updateTabIndicator(ids[curIdx], false);
+            // 애니메이션 후 인접 패널 제거 + 트랙 리셋
+            const savedNeighbor = neighborId;
+            neighborId = null;
+            setTimeout(() => {
+                const el = savedNeighbor ? document.getElementById(savedNeighbor) : null;
+                if (el) el.classList.remove('tab-swiping');
+                resetTrack();
+            }, 400);
         }
+        swipeDir = null;
     }, { passive: true });
 
     document.addEventListener('touchcancel', () => {
         if (!touching) return;
-        touching = false; locked = false;
-        setTrackX(baseTranslate, 'transform 0.28s cubic-bezier(0.4,0,0.2,1)');
+        touching = false; locked = false; swipeDir = null;
+        const savedNeighbor = neighborId;
+        neighborId = null;
+        setTimeout(() => {
+            const el = savedNeighbor ? document.getElementById(savedNeighbor) : null;
+            if (el) el.classList.remove('tab-swiping');
+            resetTrack();
+        }, 300);
     }, { passive: true });
 }
 
