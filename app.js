@@ -6400,6 +6400,21 @@ function _initSwipeGesture() {
     let swipeDir = null;   // 'next' | 'prev' | null
     let neighborId = null; // 현재 표시 중인 인접 패널 ID
     let velHistory = [];
+    let touchTarget = null;
+
+    // 터치 시작 요소가 해당 방향으로 스크롤 여지가 있는 overflow-x 컨테이너 안에 있는지 확인
+    function _isInsideHScroll(el, goingLeft) {
+        let node = el;
+        while (node && node !== document.body) {
+            const ox = window.getComputedStyle(node).overflowX;
+            if (ox === 'auto' || ox === 'scroll') {
+                if (goingLeft && node.scrollLeft < node.scrollWidth - node.clientWidth - 1) return true;
+                if (!goingLeft && node.scrollLeft > 0) return true;
+            }
+            node = node.parentElement;
+        }
+        return false;
+    }
 
     function setTrackX(x, transition = 'none') {
         track.style.transition = transition;
@@ -6449,6 +6464,7 @@ function _initSwipeGesture() {
         startY = e.touches[0].clientY;
         touching = true; locked = false; horizontal = false;
         swipeDir = null; neighborId = null;
+        touchTarget = e.target;
         velHistory = [{ x: startX, t: Date.now() }];
 
         const ids = _getVisibleTabIds();
@@ -6473,6 +6489,11 @@ function _initSwipeGesture() {
             if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
             horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
             locked = true;
+
+            // 스크롤 가능한 요소 안에서 해당 방향으로 스크롤 여지가 있으면 탭 전환 비활성화
+            if (horizontal && touchTarget && _isInsideHScroll(touchTarget, dx < 0)) {
+                horizontal = false;
+            }
 
             if (horizontal) {
                 // 방향 확정 시 인접 패널 준비
