@@ -2433,7 +2433,7 @@ let timeSlots = [
 function renderTimeSlots() {
     const container = document.getElementById('sch-timeslots');
     container.innerHTML = timeSlots.map((slot, i) => `
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-primary);border-radius:8px;">
             <span style="color:var(--text-muted);font-size:12px;font-weight:600;min-width:24px;">${i+1}</span>
             <input type="time" value="${slot.start}" onchange="timeSlots[${i}].start=this.value;autoFillNextSlot(${i})" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit;">
             <span style="color:var(--text-muted);">~</span>
@@ -4377,20 +4377,26 @@ function addRecordRow(a1, a2, b1, b2) {
     const options = allNames.map(n => `<option value="${n}">${n}</option>`).join('');
 
     const selectStyle = 'background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:8px;font-size:13px;font-family:inherit;width:100%;';
-    const inputStyle = 'background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:8px;font-size:13px;font-family:inherit;width:60px;text-align:center;';
+    const inputStyle = 'background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:8px;padding:8px;font-size:13px;font-family:inherit;width:54px;text-align:center;';
 
     const div = document.createElement('div');
     div.id = `rec-row-${id}`;
-    div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto 40px auto 1fr 1fr auto;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-subtle);';
+    div.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--border-subtle);';
     div.innerHTML = `
-        <select class="rec-a1" style="${selectStyle}">${options}</select>
-        <select class="rec-a2" style="${selectStyle}">${options}</select>
-        <input type="number" class="rec-ls" min="0" max="9" placeholder="0" style="${inputStyle}">
-        <span style="text-align:center;color:var(--accent-text);font-weight:700;">vs</span>
-        <input type="number" class="rec-rs" min="0" max="9" placeholder="0" style="${inputStyle}">
-        <select class="rec-b1" style="${selectStyle}">${options}</select>
-        <select class="rec-b2" style="${selectStyle}">${options}</select>
-        <button onclick="this.parentElement.remove()" style="background:none;border:1px solid var(--border-secondary);color:var(--loss-color);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;">✕</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+            <select class="rec-a1" style="${selectStyle}">${options}</select>
+            <select class="rec-a2" style="${selectStyle}">${options}</select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <input type="number" class="rec-ls" min="0" max="9" placeholder="0" style="${inputStyle}">
+            <span style="color:var(--accent-text);font-weight:700;flex:1;text-align:center;">vs</span>
+            <input type="number" class="rec-rs" min="0" max="9" placeholder="0" style="${inputStyle}">
+            <button onclick="this.closest('[id^=rec-row]').remove()" style="background:none;border:1px solid var(--border-secondary);color:var(--loss-color);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;flex-shrink:0;">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <select class="rec-b1" style="${selectStyle}">${options}</select>
+            <select class="rec-b2" style="${selectStyle}">${options}</select>
+        </div>
     `;
 
     if (a1) { div.querySelector('.rec-a1').value = a1; }

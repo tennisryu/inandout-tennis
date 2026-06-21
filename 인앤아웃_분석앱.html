@@ -1654,6 +1654,11 @@
                 align-items: stretch;
                 gap: 8px;
             }
+
+            /* 대진표 결과 2열 → 1열 */
+            #sch-result > div[style*="grid-template-columns:1fr 220px"] {
+                grid-template-columns: 1fr !important;
+            }
         }
 
         /* ── 소형 폰 (iPhone SE 등) ── */
@@ -2211,9 +2216,9 @@
 
             <!-- Generated Schedule -->
             <div id="sch-result" style="display:none;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
                     <h2 style="margin:0;">대진표</h2>
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button onclick="generateSchedule()" class="period-btn">🔄 재생성</button>
                         <button id="sch-save-btn" onclick="saveScheduleManually()" class="submit-btn" style="padding:8px 16px; background:linear-gradient(135deg,#166534,#14532d);">💾 수정사항 저장</button>
                         <span id="sch-save-status" style="font-size:11px;display:none;"></span>
@@ -2224,7 +2229,7 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 220px; gap:16px; align-items:start;">
                     <div class="card" style="padding:16px 20px;">
-                        <div id="sch-schedule-output"></div>
+                        <div id="sch-schedule-output" style="overflow-x:auto;"></div>
                     </div>
                     <div class="card" style="padding:14px 16px; position:sticky; top:16px;">
                         <h3 style="margin:0 0 10px 0; font-size:14px; color:var(--text-primary);">참석자 경기 수</h3>
@@ -2305,9 +2310,9 @@
 
             <!-- Match history -->
             <div class="card" style="padding:16px 20px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
                     <h2 style="margin:0;">경기 기록</h2>
-                    <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                         <select id="rec-date-filter" onchange="renderRecordHistory()" style="background:var(--input-bg);color:var(--input-color);border:1px solid var(--border-secondary);border-radius:20px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;">
                             <option value="all">전체 날짜</option>
                         </select>
@@ -2319,7 +2324,7 @@
                     </div>
                 </div>
                 <span id="gsheet-push-status" style="display:none;"></span>
-                <div id="rec-history" style="max-height:600px; overflow-y:auto;"></div>
+                <div id="rec-history" style="max-height:600px; overflow-y:auto; overflow-x:auto;"></div>
                 <div id="rec-stats" style="margin-top:12px; color:var(--text-muted); font-size:13px;"></div>
             </div>
         </div>
@@ -2346,7 +2351,7 @@
                     </div>
                 </div>
                 <div id="mem-stats" style="color:var(--text-muted); font-size:13px; margin-bottom:12px;"></div>
-                <div style="max-height:500px; overflow-y:auto;">
+                <div style="max-height:500px; overflow-y:auto; overflow-x:auto;">
                     <table>
                         <thead>
                             <tr>
