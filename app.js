@@ -1013,7 +1013,7 @@ function renderMVP() {
             : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#6b7280;margin-right:2px;" title="비회원"></span>';
         podiumHtml += `<div style="text-align:center; width:100px;">
             <div style="font-size:28px;">${medal}</div>
-            <div style="font-weight:700; color:var(--text-primary); margin:6px 0; font-size:15px;">${pTypeDot}${p.name}</div>
+            <div style="font-weight:700; color:var(--text-primary); margin:6px 0; font-size:15px; white-space:nowrap;">${pTypeDot}${p.name}</div>
             <div style="font-size:12px; color:var(--accent-text); font-weight:600;">${p.mvpScore.toFixed(1)}점</div>
             <div style="background: linear-gradient(180deg, var(--accent) 0%, var(--bg-hover) 100%); height:${h}px; border-radius:8px 8px 0 0; margin-top:8px; display:flex; align-items:flex-start; justify-content:center; padding-top:12px;">
                 <span style="color:var(--btn-text); font-weight:700; font-size:13px;">${(p.wr*100).toFixed(1)}%</span>
@@ -1033,8 +1033,8 @@ function renderMVP() {
             ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981;margin-right:4px;" title="회원"></span>'
             : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#6b7280;margin-right:4px;" title="비회원"></span>';
         row.innerHTML = `
-            <td style="font-weight:700; color:${i < 3 ? 'var(--accent-text)' : 'var(--text-muted)'}">${i + 1}</td>
-            <td>${typeBadge}<strong>${p.name}</strong></td>
+            <td style="font-weight:700; color:${i < 3 ? 'var(--accent-text)' : 'var(--text-muted)'}; position:sticky; left:0; background:var(--bg-card); z-index:1; width:36px; min-width:36px;">${i + 1}</td>
+            <td style="white-space:nowrap; position:sticky; left:36px; background:var(--bg-card); z-index:1;">${typeBadge}<strong>${p.name}</strong></td>
             <td><strong style="color:var(--accent-text)">${p.mvpScore.toFixed(1)}</strong></td>
             <td style="color:${wrColor}">${(p.wr * 100).toFixed(1)}%</td>
             <td>${p.total}</td>
