@@ -349,11 +349,13 @@
             display: flex;
             will-change: transform;
             align-items: flex-start;
+            width: 100%;
         }
 
         /* 비활성 패널은 숨김 → 활성 탭 높이에 맞게 페이지 높이 결정 */
         .tab-content {
-            min-width: 100%;
+            width: 100%;
+            min-width: 0;
             flex-shrink: 0;
             display: none;
         }

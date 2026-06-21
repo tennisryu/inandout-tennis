@@ -4927,28 +4927,6 @@ function _tmuRender(today) {
     container.innerHTML = schedule.map((round, ri) => _tmuRenderRound(round, ri, today)).join('');
     _tmuUpdateProgress(schedule);
     tmuRenderSavedMatches(today);
-    // 디버그 측정 (임시)
-    requestAnimationFrame(() => {
-        const vw = window.innerWidth;
-        const wrap = document.getElementById('tab-track-wrap');
-        const tmu = document.getElementById('todaymatchup');
-        const card = document.querySelector('.tmu-court-card');
-        const saveBtn = document.querySelector('.tmu-save-btn');
-        const editBtn = document.querySelector('.tmu-edit-btn');
-        const info = [
-            `viewport: ${vw}px`,
-            `wrap: ${wrap ? wrap.offsetWidth : '?'}px`,
-            `tab-content: ${tmu ? tmu.offsetWidth : '?'}px`,
-            `court-card: ${card ? card.offsetWidth : '?'}px (inner: ${card ? card.clientWidth - (parseInt(getComputedStyle(card).paddingLeft)||0)*2 : '?'}px)`,
-            `save-btn: ${saveBtn ? saveBtn.offsetWidth : '?'}px`,
-            `edit-btn: ${editBtn ? editBtn.offsetWidth : '?'}px`,
-        ].join('\n');
-        const dbg = document.createElement('pre');
-        dbg.id = 'tmu-debug-box';
-        dbg.style.cssText = 'font-size:11px;color:#aaa;background:#111;padding:6px 10px;border-radius:6px;margin-bottom:8px;white-space:pre;overflow-x:auto;';
-        dbg.textContent = info;
-        container.insertBefore(dbg, container.firstChild);
-    });
 }
 
 function _tmuRenderRound(round, ri, today) {
