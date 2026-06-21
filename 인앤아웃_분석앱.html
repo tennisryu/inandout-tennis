@@ -303,6 +303,7 @@
             flex-wrap: wrap;
             padding-bottom: 0;
             background: linear-gradient(180deg, rgba(45,138,78,0.08) 0%, transparent 100%);
+            position: relative;
         }
 
         .tab-button {
@@ -314,7 +315,7 @@
             font-weight: 500;
             color: var(--text-dimmed);
             border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
+            transition: color 0.2s ease;
             letter-spacing: 0.5px;
         }
 
@@ -324,8 +325,19 @@
 
         .tab-button.active {
             color: var(--accent-text);
-            border-bottom-color: var(--accent);
             background: linear-gradient(180deg, transparent 50%, rgba(45,138,78,0.15) 100%);
+        }
+
+        #tab-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 1px;
+            pointer-events: none;
+            will-change: transform, width;
+            transition: none;
         }
 
         .tab-content {
@@ -1722,6 +1734,7 @@
 
     <div class="container">
         <div class="tabs">
+            <div id="tab-indicator"></div>
             <button class="tab-button active" onclick="switchTab(event, 'todaymatchup')">Today's Match-up</button>
             <button class="tab-button" onclick="switchTab(event, 'scheduler')">대진 작성</button>
             <button class="tab-button" onclick="switchTab(event, 'recorder')">경기 기록</button>

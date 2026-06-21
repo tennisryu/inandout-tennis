@@ -1446,12 +1446,10 @@ function showAttendanceDetail(name, month) {
 }
 
 function switchTab(event, tabName, _force) {
-    // 관리자 모드가 아닌데 비공개 탭 접근 시 차단 (_force로 내부 호출 허용)
     if (!_force && !isAdmin && adminTabs.includes(tabName)) return;
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
     document.getElementById(tabName).classList.add('active');
-    // 탭 버튼 활성화: 실제 DOM 이벤트이면 target 사용, 아니면 버튼 탐색
     if (event && event.target && event.target.classList) {
         event.target.classList.add('active');
     } else {
@@ -1460,8 +1458,41 @@ function switchTab(event, tabName, _force) {
             if (oc.includes("'" + tabName + "'")) btn.classList.add('active');
         });
     }
-    // 탭별 진입 콜백
+    // 인디케이터 이동 (클릭 시 애니메이션)
+    _updateTabIndicator(tabName, true);
     if (tabName === 'todaymatchup') tmuRefreshSchedule();
+}
+
+function _updateTabIndicator(tabName, animated = false) {
+    const indicator = document.getElementById('tab-indicator');
+    if (!indicator) return;
+    const btn = document.querySelector(`.tab-button[onclick*="'${tabName}'"]`);
+    if (!btn) return;
+    indicator.style.transition = animated
+        ? 'transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s cubic-bezier(0.4,0,0.2,1)'
+        : 'none';
+    indicator.style.transform = `translateX(${btn.offsetLeft}px)`;
+    indicator.style.width = btn.offsetWidth + 'px';
+}
+
+function _interpolateTabIndicator(fromTabId, toTabId, progress) {
+    const indicator = document.getElementById('tab-indicator');
+    if (!indicator) return;
+    const fromBtn = document.querySelector(`.tab-button[onclick*="'${fromTabId}'"]`);
+    const toBtn   = document.querySelector(`.tab-button[onclick*="'${toTabId}'"]`);
+    if (!fromBtn || !toBtn) return;
+    const t = Math.max(0, Math.min(1, progress));
+    const left  = fromBtn.offsetLeft  + (toBtn.offsetLeft  - fromBtn.offsetLeft)  * t;
+    const width = fromBtn.offsetWidth + (toBtn.offsetWidth - fromBtn.offsetWidth) * t;
+    indicator.style.transition = 'none';
+    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.width = width + 'px';
+    // 탭바 스크롤 동기화
+    const tabBar = document.querySelector('.tabs');
+    if (tabBar) {
+        const center = left + width / 2 - tabBar.offsetWidth / 2;
+        tabBar.scrollLeft = Math.max(0, Math.min(center, tabBar.scrollWidth - tabBar.offsetWidth));
+    }
 }
 
 // Excel upload handling
@@ -6306,6 +6337,15 @@ function _initUI() {
     initMemberManager();
     const info = document.getElementById('member-mode-info');
     if (info) info.textContent = `회원 ${data.members.filter(m => m.type === '회원').length}명`;
+    // 초기 인디케이터 위치 (DOM 렌더 후)
+    requestAnimationFrame(() => {
+        const activeBtn = document.querySelector('.tab-button.active');
+        if (activeBtn) {
+            const oc = activeBtn.getAttribute('onclick') || '';
+            const m = oc.match(/'([^']+)'/);
+            if (m) _updateTabIndicator(m[1], false);
+        }
+    });
     _initSwipeGesture();
 }
 
@@ -6321,38 +6361,14 @@ function _initSwipeGesture() {
     let savedStyles = new Map();
     let savedBodyMinH = '';
 
-    // 탭 바 관련
     const tabBar = document.querySelector('.tabs');
-    let tabScrollFrom = 0, tabScrollTo = 0;
 
     function getVisibleTabs() {
         return TAB_ORDER.filter(id => isAdmin || !adminTabs.includes(id));
     }
 
     function scrollTabBtn(tabId) {
-        const btn = document.querySelector(`.tab-button[onclick*="'${tabId}'"]`);
-        if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-
-    function tabBtnScrollTarget(btn) {
-        if (!tabBar || !btn) return 0;
-        const center = btn.offsetLeft + btn.offsetWidth / 2 - tabBar.offsetWidth / 2;
-        return Math.max(0, Math.min(center, tabBar.scrollWidth - tabBar.offsetWidth));
-    }
-
-    function animateTabBarTo(target, duration = 280) {
-        if (!tabBar) return;
-        const from = tabBar.scrollLeft;
-        const dist = target - from;
-        if (Math.abs(dist) < 1) return;
-        const start = performance.now();
-        const tick = now => {
-            const t = Math.min((now - start) / duration, 1);
-            const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-            tabBar.scrollLeft = from + dist * ease;
-            if (t < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
+        _updateTabIndicator(tabId, true);
     }
 
     function saveStyle(el) {
@@ -6381,14 +6397,6 @@ function _initSwipeGesture() {
         curEl = activeEl;
         prevEl = curIdx > 0 ? document.getElementById(tabs[curIdx - 1]) : null;
         nextEl = curIdx < tabs.length - 1 ? document.getElementById(tabs[curIdx + 1]) : null;
-
-        // 탭 바 스크롤 목표 계산
-        tabScrollFrom = tabBar ? tabBar.scrollLeft : 0;
-        const curBtn = document.querySelector('.tab-button.active');
-        const prevBtn = curIdx > 0 ? document.querySelectorAll('.tab-button')[curIdx - 1] : null;
-        const nextBtn = curIdx < tabs.length - 1 ? document.querySelectorAll('.tab-button')[curIdx + 1] : null;
-        tabScrollTo = tabScrollFrom; // 기본값 (이웃 탭 없을 경우)
-        // 실제 이웃 버튼 스크롤 목표는 touchmove에서 방향 결정 후 설정
 
         // 스타일 변경 전에 rect 측정
         const rect = curEl.getBoundingClientRect();
@@ -6450,16 +6458,10 @@ function _initSwipeGesture() {
         if (prevEl) prevEl.style.transform = `translateX(${d - W}px)`;
         if (nextEl) nextEl.style.transform = `translateX(${d + W}px)`;
 
-        // 탭 바 스크롤 동기화
-        if (tabBar) {
-            const ratio = Math.min(Math.abs(d) / W, 1);
-            const btns = [...document.querySelectorAll('.tab-button')];
-            const neighborBtn = d < 0 ? btns[curIdx + 1] : btns[curIdx - 1];
-            if (neighborBtn) {
-                tabScrollTo = tabBtnScrollTarget(neighborBtn);
-                tabBar.scrollLeft = tabScrollFrom + (tabScrollTo - tabScrollFrom) * ratio;
-            }
-        }
+        // 인디케이터 + 탭바 실시간 동기화
+        const ratio = Math.min(Math.abs(d) / W, 1);
+        const neighborId = d < 0 ? tabs[curIdx + 1] : tabs[curIdx - 1];
+        if (neighborId) _interpolateTabIndicator(tabs[curIdx], neighborId, ratio);
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
@@ -6480,7 +6482,11 @@ function _initSwipeGesture() {
             curEl.style.transform = `translateX(-${W}px)`;
             nextEl.style.transform = 'translateX(0)';
             const newId = tabs[curIdx + 1];
-            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); scrollTabBtn(newId); }, 290);
+            // 인디케이터 먼저 애니메이션
+            const ind = document.getElementById('tab-indicator');
+            if (ind) ind.style.transition = `transform 0.28s ${slide}, width 0.28s ${slide}`;
+            _updateTabIndicator(newId, false);
+            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); }, 290);
 
         } else if (dx > W * 0.35 && prevEl) {
             // 오른쪽 스와이프 → 이전 탭
@@ -6489,7 +6495,10 @@ function _initSwipeGesture() {
             curEl.style.transform = `translateX(${W}px)`;
             prevEl.style.transform = 'translateX(0)';
             const newId = tabs[curIdx - 1];
-            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); scrollTabBtn(newId); }, 290);
+            const ind = document.getElementById('tab-indicator');
+            if (ind) ind.style.transition = `transform 0.28s ${slide}, width 0.28s ${slide}`;
+            _updateTabIndicator(newId, false);
+            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); }, 290);
 
         } else {
             // 스프링 복귀
@@ -6499,7 +6508,10 @@ function _initSwipeGesture() {
             curEl.style.transform = 'translateX(0)';
             if (prevEl) prevEl.style.transform = `translateX(-${W}px)`;
             if (nextEl) nextEl.style.transform = `translateX(${W}px)`;
-            animateTabBarTo(tabScrollFrom, 360); // 탭 바도 원위치로
+            // 인디케이터도 스프링 복귀
+            const ind = document.getElementById('tab-indicator');
+            if (ind) ind.style.transition = `transform 0.36s ${spring}, width 0.36s ${spring}`;
+            _updateTabIndicator(tabs[curIdx], false);
             setTimeout(() => cleanupDrag(), 380);
         }
     }, { passive: true });

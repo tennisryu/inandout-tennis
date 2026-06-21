@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>스와이프 방식 비교 v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: system-ui, sans-serif; background: #0b1a10; color: #e0eed6; }
+
+.page { margin-bottom: 0; }
+
+.section-label {
+  background: #112118;
+  padding: 14px 16px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a9a70;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label .rec {
+  background: #1a6e3a; color: #a5d6a7;
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+}
+.section-desc {
+  background: #112118;
+  padding: 4px 16px 12px;
+  font-size: 12px; color: #5a7a50;
+}
+
+/* ── 공통 탭 바 ── */
+.tab-bar {
+  display: flex; overflow-x: auto; scrollbar-width: none;
+  background: #0d1f12; border-bottom: 1px solid #1e3a24;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 11px 18px; white-space: nowrap;
+  font-size: 13px; font-weight: 600; color: #4a6a40;
+  border-bottom: 2px solid transparent;
+  flex-shrink: 0; cursor: pointer;
+  transition: color 0.2s;
+}
+.tab-btn.active { color: #4caf50; border-bottom-color: #4caf50; }
+
+/* ── 공통 패널 ── */
+.panel {
+  height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 6px;
+  font-size: 24px; font-weight: 800; user-select: none;
+}
+.panel .sub { font-size: 12px; font-weight: 400; opacity: 0.45; }
+.p0{background:#0f2a3a} .p1{background:#1a0f3a} .p2{background:#0f3a1a}
+.p3{background:#3a1a0f} .p4{background:#3a0f2a}
+
+
+/* ════════════════════════
+   A. CSS Scroll Snap
+   ════════════════════════ */
+.snap-container {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.snap-container::-webkit-scrollbar { display: none; }
+.snap-panel {
+  min-width: 100%; scroll-snap-align: start;
+  height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 6px;
+  font-size: 24px; font-weight: 800;
+}
+
+/* ════════════════════════
+   B. 빠른 슬라이드 (swipe → instant snap)
+   ════════════════════════ */
+.slide-viewport { overflow: hidden; position: relative; height: 200px; }
+.slide-track {
+  display: flex; height: 100%;
+  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+  will-change: transform;
+}
+.slide-track.dragging { transition: none; }
+.slide-panel { min-width: 100%; height: 100%; flex-shrink: 0; }
+
+/* ════════════════════════
+   C. 오버레이 (다음 탭이 위에서 덮임)
+   ════════════════════════ */
+.overlay-container { position: relative; height: 200px; overflow: hidden; }
+.overlay-panel {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 6px;
+  font-size: 24px; font-weight: 800;
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1),
+              opacity 0.28s ease;
+}
+.overlay-panel.hidden-right { transform: translateX(100%); }
+.overlay-panel.hidden-left  { transform: translateX(-30px); opacity: 0.4; }
+.overlay-panel.active       { transform: translateX(0); opacity: 1; }
+
+/* ════════════════════════
+   D. 트랙 드래그 (손가락 완벽 추적)
+   ════════════════════════ */
+.track-viewport { overflow: hidden; position: relative; height: 200px; touch-action: pan-y; }
+.track {
+  display: flex; height: 100%;
+  will-change: transform;
+}
+.track-panel { min-width: 100%; height: 100%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ════ A: CSS Scroll Snap ════ -->
+<div class="section-label">A. CSS Scroll Snap <span class="rec">추천</span></div>
+<div class="section-desc">브라우저가 직접 처리 — 가장 부드럽고 모멘텀 스크롤까지 지원</div>
+<div id="demoA">
+  <div class="tab-bar" id="tabBarA"></div>
+  <div class="snap-container" id="snapA"></div>
+</div>
+
+<!-- ════ B: 트랙 드래그 (손가락 완벽 추적) ════ -->
+<div class="section-label" style="margin-top:2px;">B. 트랙 드래그</div>
+<div class="section-desc">모든 패널을 한 줄로 배치, 손가락이 트랙을 직접 끌어당기는 방식</div>
+<div id="demoB">
+  <div class="tab-bar" id="tabBarB"></div>
+  <div class="track-viewport" id="trackVP">
+    <div class="track" id="track"></div>
+  </div>
+</div>
+
+<!-- ════ C: 빠른 슬라이드 ════ -->
+<div class="section-label" style="margin-top:2px;">C. 빠른 슬라이드</div>
+<div class="section-desc">스와이프 끝에 즉시 슬라이드 — 단순하고 깔끔함</div>
+<div id="demoC">
+  <div class="tab-bar" id="tabBarC"></div>
+  <div class="slide-viewport">
+    <div class="slide-track" id="slideTrack"></div>
+  </div>
+</div>
+
+<!-- ════ D: 오버레이 ════ -->
+<div class="section-label" style="margin-top:2px;">D. 오버레이 슬라이드</div>
+<div class="section-desc">다음 탭이 현재 탭 위를 덮으며 등장 — 깊이감 있는 전환</div>
+<div id="demoD">
+  <div class="tab-bar" id="tabBarD"></div>
+  <div class="overlay-container" id="overlayContainer"></div>
+</div>
+
+<div style="height:40px"></div>
+
+<script>
+const TABS = [
+  { label: "Today's M.", emoji: '🎾' },
+  { label: '회원 요약',  emoji: '📊' },
+  { label: 'MVP',       emoji: '🏆' },
+  { label: '파트너',    emoji: '👥' },
+  { label: '트렌드',    emoji: '📈' },
+];
+
+function buildTabBar(barEl, onTab) {
+  TABS.forEach((t, i) => {
+    const b = document.createElement('div');
+    b.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    b.textContent = t.label;
+    b.onclick = () => onTab(i);
+    barEl.appendChild(b);
+  });
+}
+function setActiveTab(barEl, idx) {
+  barEl.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  const btn = barEl.querySelectorAll('.tab-btn')[idx];
+  if (btn) btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+
+
+/* ════ A: CSS Scroll Snap ════ */
+(function() {
+  const barEl = document.getElementById('tabBarA');
+  const container = document.getElementById('snapA');
+  TABS.forEach((t, i) => {
+    const p = document.createElement('div');
+    p.className = `snap-panel p${i}`;
+    p.innerHTML = `${t.emoji}<span class="sub">${t.label}</span>`;
+    container.appendChild(p);
+  });
+
+  let cur = 0;
+  buildTabBar(barEl, idx => {
+    container.scrollTo({ left: idx * container.offsetWidth, behavior: 'smooth' });
+    cur = idx; setActiveTab(barEl, idx);
+  });
+
+  // 스크롤 위치로 탭 싱크
+  let scrollTimer;
+  container.addEventListener('scroll', () => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      const idx = Math.round(container.scrollLeft / container.offsetWidth);
+      if (idx !== cur) { cur = idx; setActiveTab(barEl, idx); }
+    }, 80);
+  }, { passive: true });
+})();
+
+
+/* ════ B: 트랙 드래그 ════ */
+(function() {
+  const barEl = document.getElementById('tabBarB');
+  const vp = document.getElementById('trackVP');
+  const track = document.getElementById('track');
+  let cur = 0;
+
+  TABS.forEach((t, i) => {
+    const p = document.createElement('div');
+    p.className = `track-panel p${i}`;
+    p.innerHTML = `<div class="panel">${t.emoji}<span class="sub">${t.label}</span></div>`;
+    track.appendChild(p);
+  });
+
+  function setPos(idx, animated) {
+    const W = vp.offsetWidth;
+    track.style.transition = animated ? 'transform 0.26s cubic-bezier(0.4,0,0.2,1)' : 'none';
+    track.style.transform = `translateX(${-idx * W}px)`;
+  }
+  setPos(0, false);
+
+  buildTabBar(barEl, idx => { cur = idx; setPos(idx, true); setActiveTab(barEl, idx); });
+
+  let sx = 0, dragging = false, moved = false;
+  vp.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX;
+    dragging = true; moved = false;
+    track.style.transition = 'none';
+  }, { passive: true });
+  vp.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - sx;
+    moved = true;
+    const W = vp.offsetWidth;
+    const raw = -cur * W + dx;
+    // 경계 저항
+    const maxLeft = 0, maxRight = -(TABS.length - 1) * W;
+    const bounded = raw > maxLeft ? raw * 0.25 : raw < maxRight ? maxRight + (raw - maxRight) * 0.25 : raw;
+    track.style.transform = `translateX(${bounded}px)`;
+    // 탭바 싱크
+    const ratio = Math.abs(dx) / W;
+    const neighborBtn = dx < 0 ? barEl.querySelectorAll('.tab-btn')[cur+1] : barEl.querySelectorAll('.tab-btn')[cur-1];
+    if (neighborBtn) {
+      const curBtn = barEl.querySelectorAll('.tab-btn')[cur];
+      const fromScroll = curBtn.offsetLeft - (barEl.offsetWidth - curBtn.offsetWidth) / 2;
+      const toScroll = neighborBtn.offsetLeft - (barEl.offsetWidth - neighborBtn.offsetWidth) / 2;
+      barEl.scrollLeft = fromScroll + (toScroll - fromScroll) * Math.min(ratio, 1);
+    }
+  }, { passive: true });
+  vp.addEventListener('touchend', e => {
+    if (!dragging) return; dragging = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const W = vp.offsetWidth;
+    if (Math.abs(dx) > W * 0.3) {
+      cur = dx < 0 ? Math.min(cur + 1, TABS.length - 1) : Math.max(cur - 1, 0);
+    }
+    setPos(cur, true);
+    setActiveTab(barEl, cur);
+  }, { passive: true });
+})();
+
+
+/* ════ C: 빠른 슬라이드 ════ */
+(function() {
+  const barEl = document.getElementById('tabBarC');
+  const track = document.getElementById('slideTrack');
+  let cur = 0;
+
+  TABS.forEach((t, i) => {
+    const p = document.createElement('div');
+    p.className = `slide-panel p${i}`;
+    p.innerHTML = `<div class="panel">${t.emoji}<span class="sub">${t.label}</span></div>`;
+    track.appendChild(p);
+  });
+
+  function go(idx, animated = true) {
+    track.style.transition = animated ? 'transform 0.22s cubic-bezier(0.4,0,0.2,1)' : 'none';
+    track.style.transform = `translateX(${-idx * 100}%)`;
+    cur = idx; setActiveTab(barEl, idx);
+  }
+  go(0, false);
+  buildTabBar(barEl, idx => go(idx));
+
+  let sx = 0, sy = 0, locked = false, isH = false;
+  track.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    locked = false; isH = false;
+  }, { passive: true });
+  track.addEventListener('touchmove', e => {
+    if (locked) return;
+    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy;
+    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+    isH = Math.abs(dx) > Math.abs(dy); locked = true;
+  }, { passive: true });
+  track.addEventListener('touchend', e => {
+    if (!isH) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0 && cur < TABS.length - 1) go(cur + 1);
+    else if (dx > 0 && cur > 0) go(cur - 1);
+  }, { passive: true });
+})();
+
+
+/* ════ D: 오버레이 ════ */
+(function() {
+  const barEl = document.getElementById('tabBarD');
+  const container = document.getElementById('overlayContainer');
+  let cur = 0;
+
+  TABS.forEach((t, i) => {
+    const p = document.createElement('div');
+    p.className = `overlay-panel p${i}` + (i === 0 ? ' active' : ' hidden-right');
+    p.innerHTML = `${t.emoji}<span class="sub">${t.label}</span>`;
+    container.appendChild(p);
+  });
+
+  const panels = () => container.querySelectorAll('.overlay-panel');
+
+  function go(idx) {
+    const dir = idx > cur ? 1 : -1;
+    panels().forEach((p, i) => {
+      p.className = `overlay-panel p${i}`;
+      if (i === idx) p.classList.add('active');
+      else if ((dir > 0 && i > idx) || (dir < 0 && i < idx)) p.classList.add('hidden-right');
+      else p.classList.add('hidden-left');
+    });
+    cur = idx; setActiveTab(barEl, idx);
+  }
+
+  buildTabBar(barEl, go);
+
+  let sx = 0, locked = false, isH = false;
+  container.addEventListener('touchstart', e => { sx = e.touches[0].clientX; locked = false; isH = false; }, { passive: true });
+  container.addEventListener('touchmove', e => {
+    if (locked) return;
+    const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - e.touches[0].clientY;
+    if (Math.abs(dx) < 6) return;
+    isH = true; locked = true;
+  }, { passive: true });
+  container.addEventListener('touchend', e => {
+    if (!isH) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0 && cur < TABS.length - 1) go(cur + 1);
+    else if (dx > 0 && cur > 0) go(cur - 1);
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
