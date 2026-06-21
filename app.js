@@ -115,10 +115,10 @@ const adminTabs = ['detail', 'scheduler', 'recorder', 'matches', 'members'];
                 }
             }
         });
-        // 비공개 탭 콘텐츠 숨기기
+        // 비공개 탭 콘텐츠 트랙에서 숨기기 (min-width:0 처리)
         adminTabs.forEach(id => {
             const el = document.getElementById(id);
-            if (el) { el.style.display = 'none'; el.classList.remove('active'); }
+            if (el) { el.classList.add('tab-hidden'); el.classList.remove('active'); }
         });
         // 첫 번째 공개 탭 활성화
         const firstBtn = document.querySelector('.tab-button[style=""], .tab-button:not([style*="display: none"])');
@@ -1445,11 +1445,31 @@ function showAttendanceDetail(name, month) {
     detail.innerHTML = html;
 }
 
+function _getVisibleTabIds() {
+    return [...document.querySelectorAll('.tab-content')]
+        .filter(el => !el.classList.contains('tab-hidden'))
+        .map(el => el.id)
+        .filter(Boolean);
+}
+
+function _setTrackPosition(tabId, animated = false) {
+    const track = document.getElementById('tab-track');
+    if (!track) return;
+    const ids = _getVisibleTabIds();
+    const idx = ids.indexOf(tabId);
+    if (idx === -1) return;
+    track.style.transition = animated
+        ? 'transform 0.3s cubic-bezier(0.4,0,0.2,1)'
+        : 'none';
+    track.style.transform = `translateX(${-idx * 100}%)`;
+}
+
 function switchTab(event, tabName, _force) {
     if (!_force && !isAdmin && adminTabs.includes(tabName)) return;
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
-    document.getElementById(tabName).classList.add('active');
+    const target = document.getElementById(tabName);
+    if (target) target.classList.add('active');
     if (event && event.target && event.target.classList) {
         event.target.classList.add('active');
     } else {
@@ -1458,7 +1478,7 @@ function switchTab(event, tabName, _force) {
             if (oc.includes("'" + tabName + "'")) btn.classList.add('active');
         });
     }
-    // 인디케이터 이동 (클릭 시 애니메이션)
+    _setTrackPosition(tabName, true);
     _updateTabIndicator(tabName, true);
     if (tabName === 'todaymatchup') tmuRefreshSchedule();
 }
@@ -6337,189 +6357,149 @@ function _initUI() {
     initMemberManager();
     const info = document.getElementById('member-mode-info');
     if (info) info.textContent = `회원 ${data.members.filter(m => m.type === '회원').length}명`;
-    // 초기 인디케이터 위치 (DOM 렌더 후)
+    // 초기 트랙 + 인디케이터 위치 (DOM 렌더 후)
     requestAnimationFrame(() => {
         const activeBtn = document.querySelector('.tab-button.active');
         if (activeBtn) {
             const oc = activeBtn.getAttribute('onclick') || '';
             const m = oc.match(/'([^']+)'/);
-            if (m) _updateTabIndicator(m[1], false);
+            if (m) {
+                _setTrackPosition(m[1], false);
+                _updateTabIndicator(m[1], false);
+            }
         }
     });
     _initSwipeGesture();
 }
 
 function _initSwipeGesture() {
-    const TAB_ORDER = [...document.querySelectorAll('.tab-button')]
-        .map(btn => { const m = (btn.getAttribute('onclick') || '').match(/'([^']+)'/); return m ? m[1] : null; })
-        .filter(Boolean);
+    const track = document.getElementById('tab-track');
+    if (!track) return;
 
     let startX = 0, startY = 0;
     let touching = false, locked = false, horizontal = false;
-    let curIdx = -1, tabs = [];
-    let curEl = null, prevEl = null, nextEl = null;
-    let savedStyles = new Map();
-    let savedBodyMinH = '';
+    let curIdx = -1, baseTranslate = 0;
+    let velHistory = []; // 속도 계산용
 
-    const tabBar = document.querySelector('.tabs');
+    function getVisibleIds() { return _getVisibleTabIds(); }
 
-    function getVisibleTabs() {
-        return TAB_ORDER.filter(id => isAdmin || !adminTabs.includes(id));
+    function getCurrentIdx() {
+        const ids = getVisibleIds();
+        const active = document.querySelector('.tab-content.active');
+        return active ? ids.indexOf(active.id) : 0;
     }
 
-    function scrollTabBtn(tabId) {
-        _updateTabIndicator(tabId, true);
+    function setTrackX(x, transition = 'none') {
+        track.style.transition = transition;
+        track.style.transform = `translateX(${x}px)`;
     }
 
-    function saveStyle(el) {
-        if (!el) return;
-        savedStyles.set(el, {
-            position: el.style.position, top: el.style.top, left: el.style.left,
-            width: el.style.width, height: el.style.height, overflow: el.style.overflow,
-            transform: el.style.transform, transition: el.style.transition,
-            zIndex: el.style.zIndex, display: el.style.display, willChange: el.style.willChange,
-        });
-    }
-
-    function restoreStyle(el) {
-        if (!el || !savedStyles.has(el)) return;
-        Object.assign(el.style, savedStyles.get(el));
-        savedStyles.delete(el);
-    }
-
-    function setupDrag() {
-        tabs = getVisibleTabs();
-        const activeEl = document.querySelector('.tab-content.active');
-        if (!activeEl) return false;
-        curIdx = tabs.indexOf(activeEl.id);
-        if (curIdx === -1) return false;
-
-        curEl = activeEl;
-        prevEl = curIdx > 0 ? document.getElementById(tabs[curIdx - 1]) : null;
-        nextEl = curIdx < tabs.length - 1 ? document.getElementById(tabs[curIdx + 1]) : null;
-
-        // 스타일 변경 전에 rect 측정
-        const rect = curEl.getBoundingClientRect();
-        const top = Math.round(rect.top);
-        const W = window.innerWidth;
-        const H = window.innerHeight - top;
-
-        // 레이아웃 collapse 방지
-        savedBodyMinH = document.body.style.minHeight;
-        document.body.style.minHeight = document.documentElement.scrollHeight + 'px';
-
-        const base = {
-            position: 'fixed', top: top + 'px', left: '0',
-            width: W + 'px', height: H + 'px',
-            overflow: 'hidden', transition: 'none', display: 'block', willChange: 'transform',
-        };
-
-        saveStyle(curEl);
-        Object.assign(curEl.style, { ...base, transform: 'translateX(0)', zIndex: '51' });
-
-        if (prevEl) { saveStyle(prevEl); Object.assign(prevEl.style, { ...base, transform: `translateX(-${W}px)`, zIndex: '50' }); }
-        if (nextEl) { saveStyle(nextEl); Object.assign(nextEl.style, { ...base, transform: `translateX(${W}px)`, zIndex: '50' }); }
-
-        return true;
-    }
-
-    function cleanupDrag() {
-        document.body.style.minHeight = savedBodyMinH;
-        restoreStyle(curEl); restoreStyle(prevEl); restoreStyle(nextEl);
-        curEl = null; prevEl = null; nextEl = null;
-    }
+    // 더미 함수들 제거됨
 
     document.addEventListener('touchstart', e => {
-        if (curEl) return; // 이전 애니메이션 진행 중
         if (!e.target.closest('.tab-content')) return;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         touching = true; locked = false; horizontal = false;
+        velHistory = [{ x: startX, t: Date.now() }];
+
+        // 현재 트랙 위치를 baseTranslate로 기록
+        curIdx = getCurrentIdx();
+        const W = window.innerWidth;
+        baseTranslate = -curIdx * W;
+        track.style.transition = 'none';
     }, { passive: true });
 
     document.addEventListener('touchmove', e => {
         if (!touching) return;
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
+        const cx = e.touches[0].clientX;
+        const cy = e.touches[0].clientY;
+        const dx = cx - startX;
+        const dy = cy - startY;
+
+        // 속도 기록 (최근 100ms)
+        const now = Date.now();
+        velHistory.push({ x: cx, t: now });
+        velHistory = velHistory.filter(p => now - p.t < 100);
 
         if (!locked) {
-            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-            horizontal = Math.abs(dx) > Math.abs(dy) * 1.3;
+            if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+            horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
             locked = true;
-            if (horizontal && !setupDrag()) { touching = false; return; }
         }
 
-        if (!horizontal || !curEl) return;
+        if (!horizontal) return;
+
         const W = window.innerWidth;
-        const d = e.touches[0].clientX - startX;
+        const ids = getVisibleIds();
+        // 경계 저항: 첫/마지막 탭에서 당기면 절반 속도
+        const atStart = curIdx === 0 && dx > 0;
+        const atEnd   = curIdx === ids.length - 1 && dx < 0;
+        const resistance = (atStart || atEnd) ? 0.3 : 1;
+        const x = baseTranslate + dx * resistance;
 
-        // 패널 이동
-        curEl.style.transform = `translateX(${d}px)`;
-        if (prevEl) prevEl.style.transform = `translateX(${d - W}px)`;
-        if (nextEl) nextEl.style.transform = `translateX(${d + W}px)`;
+        setTrackX(x);
 
-        // 인디케이터 + 탭바 실시간 동기화
-        const ratio = Math.min(Math.abs(d) / W, 1);
-        const neighborId = d < 0 ? tabs[curIdx + 1] : tabs[curIdx - 1];
-        if (neighborId) _interpolateTabIndicator(tabs[curIdx], neighborId, ratio);
+        // 인디케이터 실시간 동기화
+        const ratio = Math.min(Math.abs(dx) / W, 1);
+        const neighborId = dx < 0 ? ids[curIdx + 1] : ids[curIdx - 1];
+        if (neighborId) _interpolateTabIndicator(ids[curIdx], neighborId, ratio);
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
         if (!touching) return;
         touching = false;
-        if (!horizontal || !curEl) { locked = false; if (!horizontal) cleanupDrag(); return; }
+        if (!horizontal) return;
         locked = false;
 
         const dx = e.changedTouches[0].clientX - startX;
         const W = window.innerWidth;
-        const slide = 'cubic-bezier(0.25,0.46,0.45,0.94)';
-        const spring = 'cubic-bezier(0.34,1.56,0.64,1)';
+        const ids = getVisibleIds();
 
-        if (dx < -(W * 0.35) && nextEl) {
-            // 왼쪽 스와이프 → 다음 탭
-            curEl.style.transition = `transform 0.28s ${slide}`;
-            nextEl.style.transition = `transform 0.28s ${slide}`;
-            curEl.style.transform = `translateX(-${W}px)`;
-            nextEl.style.transform = 'translateX(0)';
-            const newId = tabs[curIdx + 1];
-            // 인디케이터 먼저 애니메이션
-            const ind = document.getElementById('tab-indicator');
-            if (ind) ind.style.transition = `transform 0.28s ${slide}, width 0.28s ${slide}`;
-            _updateTabIndicator(newId, false);
-            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); }, 290);
+        // 속도 계산 (px/ms)
+        const vel = velHistory.length >= 2
+            ? (velHistory[velHistory.length - 1].x - velHistory[0].x) /
+              (velHistory[velHistory.length - 1].t - velHistory[0].t)
+            : 0;
 
-        } else if (dx > W * 0.35 && prevEl) {
-            // 오른쪽 스와이프 → 이전 탭
-            curEl.style.transition = `transform 0.28s ${slide}`;
-            prevEl.style.transition = `transform 0.28s ${slide}`;
-            curEl.style.transform = `translateX(${W}px)`;
-            prevEl.style.transform = 'translateX(0)';
-            const newId = tabs[curIdx - 1];
+        // 전환 조건: 거리(35%) OR 빠른 플릭(0.3px/ms)
+        const goNext = (dx < -(W * 0.35) || vel < -0.3) && curIdx < ids.length - 1;
+        const goPrev = (dx > W * 0.35  || vel > 0.3)  && curIdx > 0;
+
+        const slide  = 'transform 0.28s cubic-bezier(0.4,0,0.2,1)';
+        const spring = 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1)';
+
+        if (goNext) {
+            const newIdx = curIdx + 1;
+            const newId  = ids[newIdx];
+            setTrackX(-newIdx * W, slide);
             const ind = document.getElementById('tab-indicator');
-            if (ind) ind.style.transition = `transform 0.28s ${slide}, width 0.28s ${slide}`;
+            if (ind) ind.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)';
             _updateTabIndicator(newId, false);
-            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); }, 290);
+            setTimeout(() => switchTab(null, newId, true), 30);
+
+        } else if (goPrev) {
+            const newIdx = curIdx - 1;
+            const newId  = ids[newIdx];
+            setTrackX(-newIdx * W, slide);
+            const ind = document.getElementById('tab-indicator');
+            if (ind) ind.style.transition = 'transform 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)';
+            _updateTabIndicator(newId, false);
+            setTimeout(() => switchTab(null, newId, true), 30);
 
         } else {
             // 스프링 복귀
-            [curEl, prevEl, nextEl].forEach(el => {
-                if (el) el.style.transition = `transform 0.36s ${spring}`;
-            });
-            curEl.style.transform = 'translateX(0)';
-            if (prevEl) prevEl.style.transform = `translateX(-${W}px)`;
-            if (nextEl) nextEl.style.transform = `translateX(${W}px)`;
-            // 인디케이터도 스프링 복귀
+            setTrackX(baseTranslate, spring);
             const ind = document.getElementById('tab-indicator');
-            if (ind) ind.style.transition = `transform 0.36s ${spring}, width 0.36s ${spring}`;
-            _updateTabIndicator(tabs[curIdx], false);
-            setTimeout(() => cleanupDrag(), 380);
+            if (ind) ind.style.transition = 'transform 0.38s cubic-bezier(0.34,1.56,0.64,1), width 0.38s cubic-bezier(0.34,1.56,0.64,1)';
+            _updateTabIndicator(ids[curIdx], false);
         }
     }, { passive: true });
 
     document.addEventListener('touchcancel', () => {
-        if (!touching && !curEl) return;
-        touching = false; locked = false; horizontal = false;
-        setTimeout(() => cleanupDrag(), 50);
+        if (!touching) return;
+        touching = false; locked = false;
+        setTrackX(baseTranslate, 'transform 0.28s cubic-bezier(0.4,0,0.2,1)');
     }, { passive: true });
 }
 

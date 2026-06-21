@@ -340,13 +340,26 @@
             transition: none;
         }
 
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.4s ease;
+        #tab-track-wrap {
+            overflow: hidden;
+            width: 100%;
         }
 
-        .tab-content.active {
+        #tab-track {
+            display: flex;
+            will-change: transform;
+            align-items: flex-start;
+        }
+
+        .tab-content {
+            min-width: 100%;
+            flex-shrink: 0;
             display: block;
+        }
+
+        .tab-content.tab-hidden {
+            display: none;
+            min-width: 0;
         }
 
         @keyframes fadeIn {
@@ -1775,6 +1788,7 @@
         </div>
 
         <!-- Tab 1: 회원 요약 -->
+        <div id="tab-track-wrap"><div id="tab-track">
         <div id="summary" class="tab-content">
             <div class="card">
                 <h2 style="margin-bottom: 15px;">회원 통계</h2>
@@ -2377,6 +2391,7 @@
                 </div>
             </div>
         </div>
+        </div></div><!-- /tab-track /tab-track-wrap -->
     </div>
 
     <!-- Google Sheets 설정 모달 -->
