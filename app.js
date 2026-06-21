@@ -4960,9 +4960,9 @@ function _tmuRenderRound(round, ri, today) {
                 <span class="tmu-round-courts-count">${courts.length}면</span>
                 <div class="tmu-round-progress">${dots}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:1;min-width:0;overflow:hidden;">
                 ${waitingHeaderBadge}
-                <span class="tmu-round-toggle">▾</span>
+                <span class="tmu-round-toggle" style="flex-shrink:0;">▾</span>
             </div>
         </div>
         <div class="tmu-round-body" id="tmu-round-body-${ri}">
@@ -5017,8 +5017,8 @@ function _tmuRenderCourt(court, ri, ci, today) {
             </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:6px;">
-            <button class="tmu-edit-btn" onclick="tmuEditCourt(${ri},${ci},'${today}')">✏️ 점수 수정</button>
-            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--lineup-btn-color);border-color:var(--lineup-btn-border);">🔀 대진 변경</button>
+            <button class="tmu-edit-btn" onclick="tmuEditCourt(${ri},${ci},'${today}')" style="flex:1 1 0;min-width:0;width:auto;">✏️ 점수 수정</button>
+            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="flex:1 1 0;min-width:0;width:auto;color:var(--lineup-btn-color);border-color:var(--lineup-btn-border);">🔀 대진 변경</button>
         </div>`;
     } else {
         bodyHtml = `
@@ -5052,11 +5052,11 @@ function _tmuRenderCourt(court, ri, ci, today) {
             </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:6px;">
-            <button class="tmu-save-btn" id="tmu-savebtn-${ri}-${ci}"
+            <button class="tmu-save-btn" id="tmu-savebtn-${ri}-${ci}" style="flex:1 1 0;min-width:0;width:auto;"
                     onclick="tmuSaveCourtScore(${ri},${ci},'${court.a1}','${court.a2}','${court.b1}','${court.b2}','${today}')">
                 💾 이 경기 저장
             </button>
-            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="color:var(--lineup-btn-color);border-color:var(--lineup-btn-border);">🔀 대진 변경</button>
+            <button class="tmu-edit-btn" onclick="tmuEditLineup(${ri},${ci},'${today}')" style="flex:1 1 0;min-width:0;width:auto;color:var(--lineup-btn-color);border-color:var(--lineup-btn-border);">🔀 대진 변경</button>
         </div>`;
     }
 
@@ -5235,8 +5235,8 @@ function tmuEditLineup(ri, ci, date) {
             </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="tmu-save-btn" onclick="tmuConfirmLineup(${ri},${ci},'${date}')">✅ 확인</button>
-            <button class="tmu-edit-btn" onclick="tmuCancelLineup(${ri},'${date}')">취소</button>
+            <button class="tmu-save-btn" style="flex:1 1 0;min-width:0;width:auto;" onclick="tmuConfirmLineup(${ri},${ci},'${date}')">✅ 확인</button>
+            <button class="tmu-edit-btn" style="flex:1 1 0;min-width:0;width:auto;" onclick="tmuCancelLineup(${ri},'${date}')">취소</button>
         </div>`;
 }
 
