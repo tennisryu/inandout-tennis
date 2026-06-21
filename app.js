@@ -4772,6 +4772,8 @@ function initTodayMatchup() {
     const today = _localDateStr();
     const inp = document.getElementById('tmu-date-input');
     if (inp) inp.value = today;
+    const goBtn = document.getElementById('tmu-goto-scheduler-btn');
+    if (goBtn) goBtn.style.display = isAdmin ? '' : 'none';
     tmuRefreshSchedule(today);
 }
 
@@ -6308,53 +6310,157 @@ function _initUI() {
 }
 
 function _initSwipeGesture() {
-    // 탭 버튼 순서대로 tabId 배열 추출
     const TAB_ORDER = [...document.querySelectorAll('.tab-button')]
-        .map(btn => {
-            const m = (btn.getAttribute('onclick') || '').match(/'([^']+)'/);
-            return m ? m[1] : null;
-        })
+        .map(btn => { const m = (btn.getAttribute('onclick') || '').match(/'([^']+)'/); return m ? m[1] : null; })
         .filter(Boolean);
 
-    let startX = 0, startY = 0, startTime = 0, onTabContent = false;
+    let startX = 0, startY = 0;
+    let touching = false, locked = false, horizontal = false;
+    let curIdx = -1, tabs = [];
+    let curEl = null, prevEl = null, nextEl = null;
+    let savedStyles = new Map();
+    let savedBodyMinH = '';
+
+    function getVisibleTabs() {
+        return TAB_ORDER.filter(id => isAdmin || !adminTabs.includes(id));
+    }
+
+    function scrollTabBtn(tabId) {
+        const btn = document.querySelector(`.tab-button[onclick*="'${tabId}'"]`);
+        if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    function saveStyle(el) {
+        if (!el) return;
+        savedStyles.set(el, {
+            position: el.style.position, top: el.style.top, left: el.style.left,
+            width: el.style.width, height: el.style.height, overflow: el.style.overflow,
+            transform: el.style.transform, transition: el.style.transition,
+            zIndex: el.style.zIndex, display: el.style.display, willChange: el.style.willChange,
+        });
+    }
+
+    function restoreStyle(el) {
+        if (!el || !savedStyles.has(el)) return;
+        Object.assign(el.style, savedStyles.get(el));
+        savedStyles.delete(el);
+    }
+
+    function setupDrag() {
+        tabs = getVisibleTabs();
+        const activeEl = document.querySelector('.tab-content.active');
+        if (!activeEl) return false;
+        curIdx = tabs.indexOf(activeEl.id);
+        if (curIdx === -1) return false;
+
+        curEl = activeEl;
+        prevEl = curIdx > 0 ? document.getElementById(tabs[curIdx - 1]) : null;
+        nextEl = curIdx < tabs.length - 1 ? document.getElementById(tabs[curIdx + 1]) : null;
+
+        // 스타일 변경 전에 rect 측정
+        const rect = curEl.getBoundingClientRect();
+        const top = Math.round(rect.top);
+        const W = window.innerWidth;
+        const H = window.innerHeight - top;
+
+        // 레이아웃 collapse 방지
+        savedBodyMinH = document.body.style.minHeight;
+        document.body.style.minHeight = document.documentElement.scrollHeight + 'px';
+
+        const base = {
+            position: 'fixed', top: top + 'px', left: '0',
+            width: W + 'px', height: H + 'px',
+            overflow: 'hidden', transition: 'none', display: 'block', willChange: 'transform',
+        };
+
+        saveStyle(curEl);
+        Object.assign(curEl.style, { ...base, transform: 'translateX(0)', zIndex: '51' });
+
+        if (prevEl) { saveStyle(prevEl); Object.assign(prevEl.style, { ...base, transform: `translateX(-${W}px)`, zIndex: '50' }); }
+        if (nextEl) { saveStyle(nextEl); Object.assign(nextEl.style, { ...base, transform: `translateX(${W}px)`, zIndex: '50' }); }
+
+        return true;
+    }
+
+    function cleanupDrag() {
+        document.body.style.minHeight = savedBodyMinH;
+        restoreStyle(curEl); restoreStyle(prevEl); restoreStyle(nextEl);
+        curEl = null; prevEl = null; nextEl = null;
+    }
 
     document.addEventListener('touchstart', e => {
-        const t = e.touches[0];
-        startX = t.clientX;
-        startY = t.clientY;
-        startTime = Date.now();
-        // 탭 컨텐츠 영역에서 시작한 터치만 처리 (탭바·입력창 제외)
-        onTabContent = !!e.target.closest('.tab-content');
+        if (curEl) return; // 이전 애니메이션 진행 중
+        if (!e.target.closest('.tab-content')) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        touching = true; locked = false; horizontal = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+        if (!touching) return;
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+
+        if (!locked) {
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            horizontal = Math.abs(dx) > Math.abs(dy) * 1.3;
+            locked = true;
+            if (horizontal && !setupDrag()) { touching = false; return; }
+        }
+
+        if (!horizontal || !curEl) return;
+        const W = window.innerWidth;
+        const d = e.touches[0].clientX - startX;
+        curEl.style.transform = `translateX(${d}px)`;
+        if (prevEl) prevEl.style.transform = `translateX(${d - W}px)`;
+        if (nextEl) nextEl.style.transform = `translateX(${d + W}px)`;
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
-        if (!onTabContent) return;
+        if (!touching) return;
+        touching = false;
+        if (!horizontal || !curEl) { locked = false; if (!horizontal) cleanupDrag(); return; }
+        locked = false;
 
         const dx = e.changedTouches[0].clientX - startX;
-        const dy = e.changedTouches[0].clientY - startY;
-        const dt = Date.now() - startTime;
+        const W = window.innerWidth;
+        const slide = 'cubic-bezier(0.25,0.46,0.45,0.94)';
+        const spring = 'cubic-bezier(0.34,1.56,0.64,1)';
 
-        // 수평 스와이프 조건: 거리 60px 이상, 수평이 수직의 1.8배 이상, 500ms 이내
-        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8 || dt > 500) return;
+        if (dx < -(W * 0.35) && nextEl) {
+            // 왼쪽 스와이프 → 다음 탭
+            curEl.style.transition = `transform 0.28s ${slide}`;
+            nextEl.style.transition = `transform 0.28s ${slide}`;
+            curEl.style.transform = `translateX(-${W}px)`;
+            nextEl.style.transform = 'translateX(0)';
+            const newId = tabs[curIdx + 1];
+            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); scrollTabBtn(newId); }, 290);
 
-        // 현재 활성 탭 찾기
-        const activeTab = document.querySelector('.tab-content.active');
-        if (!activeTab) return;
-        const currentId = activeTab.id;
+        } else if (dx > W * 0.35 && prevEl) {
+            // 오른쪽 스와이프 → 이전 탭
+            curEl.style.transition = `transform 0.28s ${slide}`;
+            prevEl.style.transition = `transform 0.28s ${slide}`;
+            curEl.style.transform = `translateX(${W}px)`;
+            prevEl.style.transform = 'translateX(0)';
+            const newId = tabs[curIdx - 1];
+            setTimeout(() => { switchTab(null, newId, true); cleanupDrag(); scrollTabBtn(newId); }, 290);
 
-        // 현재 사용자에게 보이는 탭만 필터
-        const visibleTabs = TAB_ORDER.filter(id => isAdmin || !adminTabs.includes(id));
-        const idx = visibleTabs.indexOf(currentId);
-        if (idx === -1) return;
+        } else {
+            // 스프링 복귀
+            [curEl, prevEl, nextEl].forEach(el => {
+                if (el) el.style.transition = `transform 0.36s ${spring}`;
+            });
+            curEl.style.transform = 'translateX(0)';
+            if (prevEl) prevEl.style.transform = `translateX(-${W}px)`;
+            if (nextEl) nextEl.style.transform = `translateX(${W}px)`;
+            setTimeout(() => cleanupDrag(), 380);
+        }
+    }, { passive: true });
 
-        const nextIdx = dx < 0 ? idx + 1 : idx - 1; // 왼쪽 스와이프 → 다음
-        if (nextIdx < 0 || nextIdx >= visibleTabs.length) return;
-
-        switchTab(null, visibleTabs[nextIdx], true);
-
-        // 탭 버튼도 스크롤해서 보이게
-        const nextBtn = document.querySelector(`.tab-button[onclick*="'${visibleTabs[nextIdx]}'"]`);
-        if (nextBtn) nextBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    document.addEventListener('touchcancel', () => {
+        if (!touching && !curEl) return;
+        touching = false; locked = false; horizontal = false;
+        setTimeout(() => cleanupDrag(), 50);
     }, { passive: true });
 }
 
