@@ -6321,6 +6321,10 @@ function _initSwipeGesture() {
     let savedStyles = new Map();
     let savedBodyMinH = '';
 
+    // 탭 바 관련
+    const tabBar = document.querySelector('.tabs');
+    let tabScrollFrom = 0, tabScrollTo = 0;
+
     function getVisibleTabs() {
         return TAB_ORDER.filter(id => isAdmin || !adminTabs.includes(id));
     }
@@ -6328,6 +6332,27 @@ function _initSwipeGesture() {
     function scrollTabBtn(tabId) {
         const btn = document.querySelector(`.tab-button[onclick*="'${tabId}'"]`);
         if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    function tabBtnScrollTarget(btn) {
+        if (!tabBar || !btn) return 0;
+        const center = btn.offsetLeft + btn.offsetWidth / 2 - tabBar.offsetWidth / 2;
+        return Math.max(0, Math.min(center, tabBar.scrollWidth - tabBar.offsetWidth));
+    }
+
+    function animateTabBarTo(target, duration = 280) {
+        if (!tabBar) return;
+        const from = tabBar.scrollLeft;
+        const dist = target - from;
+        if (Math.abs(dist) < 1) return;
+        const start = performance.now();
+        const tick = now => {
+            const t = Math.min((now - start) / duration, 1);
+            const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            tabBar.scrollLeft = from + dist * ease;
+            if (t < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
     }
 
     function saveStyle(el) {
@@ -6356,6 +6381,14 @@ function _initSwipeGesture() {
         curEl = activeEl;
         prevEl = curIdx > 0 ? document.getElementById(tabs[curIdx - 1]) : null;
         nextEl = curIdx < tabs.length - 1 ? document.getElementById(tabs[curIdx + 1]) : null;
+
+        // 탭 바 스크롤 목표 계산
+        tabScrollFrom = tabBar ? tabBar.scrollLeft : 0;
+        const curBtn = document.querySelector('.tab-button.active');
+        const prevBtn = curIdx > 0 ? document.querySelectorAll('.tab-button')[curIdx - 1] : null;
+        const nextBtn = curIdx < tabs.length - 1 ? document.querySelectorAll('.tab-button')[curIdx + 1] : null;
+        tabScrollTo = tabScrollFrom; // 기본값 (이웃 탭 없을 경우)
+        // 실제 이웃 버튼 스크롤 목표는 touchmove에서 방향 결정 후 설정
 
         // 스타일 변경 전에 rect 측정
         const rect = curEl.getBoundingClientRect();
@@ -6411,9 +6444,22 @@ function _initSwipeGesture() {
         if (!horizontal || !curEl) return;
         const W = window.innerWidth;
         const d = e.touches[0].clientX - startX;
+
+        // 패널 이동
         curEl.style.transform = `translateX(${d}px)`;
         if (prevEl) prevEl.style.transform = `translateX(${d - W}px)`;
         if (nextEl) nextEl.style.transform = `translateX(${d + W}px)`;
+
+        // 탭 바 스크롤 동기화
+        if (tabBar) {
+            const ratio = Math.min(Math.abs(d) / W, 1);
+            const btns = [...document.querySelectorAll('.tab-button')];
+            const neighborBtn = d < 0 ? btns[curIdx + 1] : btns[curIdx - 1];
+            if (neighborBtn) {
+                tabScrollTo = tabBtnScrollTarget(neighborBtn);
+                tabBar.scrollLeft = tabScrollFrom + (tabScrollTo - tabScrollFrom) * ratio;
+            }
+        }
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
@@ -6453,6 +6499,7 @@ function _initSwipeGesture() {
             curEl.style.transform = 'translateX(0)';
             if (prevEl) prevEl.style.transform = `translateX(-${W}px)`;
             if (nextEl) nextEl.style.transform = `translateX(${W}px)`;
+            animateTabBarTo(tabScrollFrom, 360); // 탭 바도 원위치로
             setTimeout(() => cleanupDrag(), 380);
         }
     }, { passive: true });
