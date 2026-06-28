@@ -3850,7 +3850,7 @@ function _makePlayerSelect(roundIdx, courtIdx, pos, currentName) {
     const selColor = curGender === '여' ? '#ec4899' : '#3b82f6';
     const selBg = curGender === '여' ? 'rgba(236,72,153,0.08)' : 'rgba(59,130,246,0.08)';
     return `<select onchange="swapSchedulePlayer(${roundIdx},${courtIdx},'${pos}',this.value)"
-        style="background:${selBg};color:${selColor};border:1px solid ${selColor}40;border-radius:6px;padding:3px 6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;width:100%;max-width:120px;min-width:0;">${opts}</select>`;
+        style="background:${selBg};color:${selColor};border:1px solid ${selColor}40;border-radius:6px;padding:3px 6px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;max-width:100px;">${opts}</select>`;
 }
 
 function _levelSup(name) {
@@ -3975,29 +3975,21 @@ function renderScheduleOutput() {
             else if (femaleCount === 0) { courtTypeLabel = '남복'; courtTypeBorder = '#3b82f6'; }
             else { courtTypeLabel = '혼복'; courtTypeBorder = '#a855f7'; }
 
-            html += `<div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-primary);border-left:3px solid ${courtTypeBorder};border-radius:8px;margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <span style="color:var(--text-muted);font-size:12px;font-weight:600;">코트${ci+1} <span style="color:${courtTypeBorder};font-size:10px;">${courtTypeLabel}</span></span>
-                    <span style="color:var(--text-dimmed);font-size:11px;">(${teamALevel}) <span style="color:${diffColor};">차이${diff}</span> (${teamBLevel})</span>
+            html += `<div class="sch-court-row" style="display:grid;grid-template-columns:50px 1fr 30px 44px 1fr;gap:6px;align-items:center;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-primary);border-left:3px solid ${courtTypeBorder};border-radius:8px;margin-bottom:6px;">
+                <span style="color:var(--text-muted);font-size:12px;font-weight:600;">코트${ci+1}<br><span style="color:${courtTypeBorder};font-size:10px;">${courtTypeLabel}</span></span>
+                <div class="sch-team" style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">
+                    <div class="sch-player-row">${_makePlayerSelect(ri, ci, 'a1', court.a1)}${_levelSup(court.a1)}</div>
+                    <span class="sch-slash" style="color:var(--text-dimmed);margin:0 2px;">/</span>
+                    <div class="sch-player-row">${_makePlayerSelect(ri, ci, 'a2', court.a2)}${_levelSup(court.a2)}</div>
+                    <span class="sch-level-total" style="color:var(--text-dimmed);font-size:11px;margin-left:2px;">(${teamALevel})</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
-                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
-                            ${_makePlayerSelect(ri, ci, 'a1', court.a1)}${_levelSup(court.a1)}
-                        </div>
-                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
-                            ${_makePlayerSelect(ri, ci, 'a2', court.a2)}${_levelSup(court.a2)}
-                        </div>
-                    </div>
-                    <span style="color:var(--accent-text);font-weight:700;font-size:14px;flex-shrink:0;">vs</span>
-                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
-                            ${_makePlayerSelect(ri, ci, 'b1', court.b1)}${_levelSup(court.b1)}
-                        </div>
-                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
-                            ${_makePlayerSelect(ri, ci, 'b2', court.b2)}${_levelSup(court.b2)}
-                        </div>
-                    </div>
+                <span style="color:var(--accent-text);font-weight:700;text-align:center;">vs</span>
+                <span style="color:${diffColor};font-size:11px;text-align:center;">차이 ${diff}</span>
+                <div class="sch-team" style="display:flex;align-items:center;gap:4px;">
+                    <div class="sch-player-row">${_makePlayerSelect(ri, ci, 'b1', court.b1)}${_levelSup(court.b1)}</div>
+                    <span class="sch-slash" style="color:var(--text-dimmed);margin:0 2px;">/</span>
+                    <div class="sch-player-row">${_makePlayerSelect(ri, ci, 'b2', court.b2)}${_levelSup(court.b2)}</div>
+                    <span class="sch-level-total" style="color:var(--text-dimmed);font-size:11px;margin-left:2px;">(${teamBLevel})</span>
                 </div>
             </div>`;
         });

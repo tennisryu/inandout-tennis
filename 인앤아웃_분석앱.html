@@ -1695,14 +1695,21 @@
             /* 대진 결과 그리드: 모바일에서 1열로 */
             .sch-result-grid { grid-template-columns: 1fr !important; }
 
-            /* 코트 행: 모바일에서 flex 세로 배치 */
+            /* 코트 행: 모바일에서 컬럼 너비 줄이고 선수 세로 배치 */
             .sch-court-row {
-                display: flex !important;
-                flex-direction: column !important;
-                gap: 8px !important;
+                grid-template-columns: 40px 1fr 18px 28px 1fr !important;
+                gap: 4px !important;
+                padding: 8px 10px !important;
+                align-items: start !important;
             }
-            .sch-court-row .sch-team { justify-content: flex-start; flex-wrap: wrap; }
-            .sch-court-row .sch-vs-col { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+            .sch-court-row .sch-team {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 2px !important;
+            }
+            .sch-court-row .sch-player-row { display: flex; align-items: center; gap: 2px; }
+            .sch-court-row .sch-slash { display: none !important; }
+            .sch-court-row .sch-level-total { margin-left: 0 !important; font-size: 10px !important; }
         }
 
         /* ── iOS Safe Area (노치/홈바) ── */
