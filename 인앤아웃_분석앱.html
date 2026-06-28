@@ -1691,6 +1691,18 @@
 
             /* 워크스페이스 버튼 줄바꿈 허용 */
             #sch-workspace-chips { gap: 5px; }
+
+            /* 대진 결과 그리드: 모바일에서 1열로 */
+            .sch-result-grid { grid-template-columns: 1fr !important; }
+
+            /* 코트 행: 모바일에서 flex 세로 배치 */
+            .sch-court-row {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+            .sch-court-row .sch-team { justify-content: flex-start; flex-wrap: wrap; }
+            .sch-court-row .sch-vs-col { display: flex; align-items: center; gap: 8px; font-size: 12px; }
         }
 
         /* ── iOS Safe Area (노치/홈바) ── */
@@ -2232,7 +2244,7 @@
                         <button onclick="sendScheduleToRecorder()" class="submit-btn" style="padding:8px 16px; background:linear-gradient(135deg,#3b82f6,#2563eb);">📝 결과 기록으로</button>
                     </div>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 220px; gap:16px; align-items:start;">
+                <div class="sch-result-grid" style="display:grid; grid-template-columns:1fr 220px; gap:16px; align-items:start;">
                     <div class="card" style="padding:16px 20px;">
                         <div id="sch-schedule-output" style="overflow-x:auto;"></div>
                     </div>
