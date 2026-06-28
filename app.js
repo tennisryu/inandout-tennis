@@ -3978,25 +3978,23 @@ function renderScheduleOutput() {
             html += `<div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-primary);border-left:3px solid ${courtTypeBorder};border-radius:8px;margin-bottom:6px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                     <span style="color:var(--text-muted);font-size:12px;font-weight:600;">코트${ci+1} <span style="color:${courtTypeBorder};font-size:10px;">${courtTypeLabel}</span></span>
-                    <span style="color:${diffColor};font-size:11px;">차이 ${diff}</span>
+                    <span style="color:var(--text-dimmed);font-size:11px;">(${teamALevel}) <span style="color:${diffColor};">차이${diff}</span> (${teamBLevel})</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
-                        <div style="display:flex;align-items:center;gap:3px;">
+                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
                             ${_makePlayerSelect(ri, ci, 'a1', court.a1)}${_levelSup(court.a1)}
                         </div>
-                        <div style="display:flex;align-items:center;gap:3px;">
+                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
                             ${_makePlayerSelect(ri, ci, 'a2', court.a2)}${_levelSup(court.a2)}
-                            <span style="color:var(--text-dimmed);font-size:11px;margin-left:2px;">(${teamALevel})</span>
                         </div>
                     </div>
                     <span style="color:var(--accent-text);font-weight:700;font-size:14px;flex-shrink:0;">vs</span>
                     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-                        <div style="display:flex;align-items:center;gap:3px;">
+                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
                             ${_makePlayerSelect(ri, ci, 'b1', court.b1)}${_levelSup(court.b1)}
                         </div>
-                        <div style="display:flex;align-items:center;gap:3px;">
-                            <span style="color:var(--text-dimmed);font-size:11px;margin-right:2px;">(${teamBLevel})</span>
+                        <div style="display:flex;align-items:center;gap:3px;min-width:0;">
                             ${_makePlayerSelect(ri, ci, 'b2', court.b2)}${_levelSup(court.b2)}
                         </div>
                     </div>
@@ -6500,7 +6498,14 @@ function _initSwipeGesture() {
             horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
             locked = true;
 
-            // 스크롤 가능한 요소 안에서 해당 방향으로 스크롤 여지가 있으면 탭 전환 비활성화
+            // data-no-tab-swipe 영역이거나 스크롤 가능한 요소 안에서 여지가 있으면 탭 전환 비활성화
+            if (horizontal && touchTarget) {
+                let node = touchTarget;
+                while (node && node !== document.body) {
+                    if (node.dataset && node.dataset.noTabSwipe) { horizontal = false; break; }
+                    node = node.parentElement;
+                }
+            }
             if (horizontal && touchTarget && _isInsideHScroll(touchTarget, dx < 0)) {
                 horizontal = false;
             }
