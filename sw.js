@@ -1,4 +1,4 @@
-const CACHE_NAME = 'inandout-v1';
+const CACHE_NAME = 'inandout-v2';
 const STATIC_FILES = [
     '/',
     '/인앤아웃_분석앱.html',
@@ -36,9 +36,9 @@ self.addEventListener('fetch', e => {
             )
         );
     } else {
-        // 정적 파일: 네트워크 우선, 실패 시 캐시
+        // 정적 파일: 네트워크 우선(HTTP 캐시 무시), 실패 시 SW 캐시
         e.respondWith(
-            fetch(e.request)
+            fetch(new Request(e.request, { cache: 'no-cache' }))
                 .then(res => {
                     const clone = res.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));

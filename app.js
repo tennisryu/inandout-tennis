@@ -4869,7 +4869,10 @@ async function tmuRefreshSchedule(targetDate) {
     const isToday = date === today;
 
     const dateObj = new Date(date + 'T00:00:00');
-    const dateLabel = dateObj.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+    let dateLabel = date;
+    try {
+        dateLabel = dateObj.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+    } catch(e) { /* iOS 구형 로케일 미지원 대비 */ }
     document.getElementById('tmu-date-label').textContent = dateLabel + (isToday ? ' · 인앤아웃 테니스' : '');
 
     document.getElementById('tmu-loading').style.display = 'block';
